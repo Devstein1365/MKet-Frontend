@@ -1,140 +1,116 @@
-// Mock notifications service
-const mockNotifications = [
+// Notifications Service - Mock for now (will be integrated with backend later)
+// Storage key
+const NOTIFICATIONS_KEY = "mket_notifications";
+
+// Load from localStorage
+const loadNotifications = () => {
+  try {
+    const stored = localStorage.getItem(NOTIFICATIONS_KEY);
+    return stored ? JSON.parse(stored) : getDefaultNotifications();
+  } catch (error) {
+    console.error("Error loading notifications:", error);
+    return getDefaultNotifications();
+  }
+};
+
+// Save to localStorage
+const saveNotifications = (notifications) => {
+  try {
+    localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(notifications));
+  } catch (error) {
+    console.error("Error saving notifications:", error);
+  }
+};
+
+// Default mock notifications
+const getDefaultNotifications = () => [
   {
     id: 1,
     type: "message",
     title: "New Message",
-    message: "John Doe sent you a message about 'iPhone 13 Pro'",
-    time: "2 minutes ago",
+    message: "Aisha Mohammed sent you a message",
+    timestamp: new Date().toISOString(),
     read: false,
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
     link: "/dashboard/chat",
   },
   {
     id: 2,
-    type: "sale",
-    title: "Item Sold!",
-    message: "Your 'Samsung Galaxy Watch' has been sold",
-    time: "1 hour ago",
+    type: "product",
+    title: "Product Sold",
+    message: "Your iPhone 13 Pro Max has been marked as sold",
+    timestamp: new Date(Date.now() - 3600000).toISOString(),
     read: false,
-    avatar: null,
     link: "/dashboard/profile",
   },
   {
     id: 3,
-    type: "like",
-    title: "New Interest",
-    message: "Someone added your 'MacBook Pro' to their wishlist",
-    time: "3 hours ago",
+    type: "review",
+    title: "New Review",
+    message: "Someone left a review on your MacBook Pro listing",
+    timestamp: new Date(Date.now() - 7200000).toISOString(),
     read: false,
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-    link: "/dashboard/product/3",
-  },
-  {
-    id: 4,
-    type: "price",
-    title: "Price Drop Alert",
-    message: "A product in your wishlist has dropped in price",
-    time: "5 hours ago",
-    read: true,
-    avatar: null,
-    link: "/dashboard/wishlist",
-  },
-  {
-    id: 5,
-    type: "comment",
-    title: "New Comment",
-    message: "Ahmed commented on your post 'Gaming PC Setup'",
-    time: "Yesterday",
-    read: true,
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ahmed",
-    link: "/dashboard/product/5",
-  },
-  {
-    id: 6,
-    type: "message",
-    title: "New Message",
-    message: "Fatima replied to your message",
-    time: "Yesterday",
-    read: true,
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Fatima",
-    link: "/dashboard/chat",
-  },
-  {
-    id: 7,
-    type: "sale",
-    title: "Payment Received",
-    message: "You received payment for 'Office Chair'",
-    time: "2 days ago",
-    read: true,
-    avatar: null,
-    link: "/dashboard/profile",
-  },
-  {
-    id: 8,
-    type: "like",
-    title: "New Interest",
-    message: "3 people added your items to wishlist today",
-    time: "2 days ago",
-    read: true,
-    avatar: null,
-    link: "/dashboard/profile",
+    link: "/dashboard/product/2",
   },
 ];
 
-const notificationsService = {
+class NotificationsService {
   // Get all notifications
-  getAllNotifications: () => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(mockNotifications);
-      }, 300);
-    });
-  },
-
-  // Get recent notifications (for dropdown)
-  getRecentNotifications: (count = 3) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(mockNotifications.slice(0, count));
-      }, 300);
-    });
-  },
+  getAllNotifications() {
+    return loadNotifications();
+  }
 
   // Get unread count
-  getUnreadCount: () => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const unreadCount = mockNotifications.filter((n) => !n.read).length;
-        resolve(unreadCount);
-      }, 100);
-    });
-  },
+  getUnreadCount() {
+    const notifications = loadNotifications();
+    return notifications.filter((n) => !n.read).length;
+  }
 
   // Mark notification as read
-  markAsRead: (notificationId) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const notification = mockNotifications.find(
-          (n) => n.id === notificationId
-        );
-        if (notification) {
-          notification.read = true;
-        }
-        resolve(notification);
-      }, 200);
-    });
-  },
+  markAsRead(notificationId) {
+    const notifications = loadNotifications();
+    const notification = notifications.find((n) => n.id === notificationId);
+    if (notification) {
+      notification.read = true;
+      saveNotifications(notifications);
+    }
+    return notifications;
+  }
 
   // Mark all as read
-  markAllAsRead: () => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        mockNotifications.forEach((n) => (n.read = true));
-        resolve(true);
-      }, 300);
-    });
-  },
-};
+  markAllAsRead() {
+    const notifications = loadNotifications();
+    notifications.forEach((n) => (n.read = true));
+    saveNotifications(notifications);
+    return notifications;
+  }
 
-export default notificationsService;
+  // Delete notification
+  deleteNotification(notificationId) {
+    let notifications = loadNotifications();
+    notifications = notifications.filter((n) => n.id !== notificationId);
+    saveNotifications(notifications);
+    return notifications;
+  }
+
+  // Add new notification (for testing/demo)
+  addNotification(notification) {
+    const notifications = loadNotifications();
+    const newNotification = {
+      id: Date.now(),
+      ...notification,
+      timestamp: new Date().toISOString(),
+      read: false,
+    };
+    notifications.unshift(newNotification);
+    saveNotifications(notifications);
+    return notifications;
+  }
+
+  // Clear all notifications
+  clearAll() {
+    saveNotifications([]);
+    return [];
+  }
+}
+
+export default new NotificationsService();

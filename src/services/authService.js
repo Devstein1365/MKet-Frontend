@@ -1,115 +1,90 @@
-// Authentication service using localStorage
-const USERS_KEY = "mket_users";
-const CURRENT_USER_KEY = "mket_current_user";
+import api from "./api";
+
+// Authentication service using backend API
 const AUTH_TOKEN_KEY = "mket_auth_token";
+const CURRENT_USER_KEY = "mket_current_user";
 
 class AuthService {
-  // Get all users from localStorage
-  getAllUsers() {
-    const users = localStorage.getItem(USERS_KEY);
-    return users ? JSON.parse(users) : [];
+  // Get stored token
+  getToken() {
+    return localStorage.getItem(AUTH_TOKEN_KEY);
   }
 
-  // Save users to localStorage
-  saveUsers(users) {
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  // Get current user from localStorage
+  getCurrentUser() {
+    const user = localStorage.getItem(CURRENT_USER_KEY);
+    return user ? JSON.parse(user) : null;
   }
 
-  // Generate a simple token
-  generateToken(userId) {
-    return `token_${userId}_${Date.now()}`;
+  // Check if user is authenticated
+  isAuthenticated() {
+    return !!this.getToken();
   }
 
   // Sign up a new user
-  signup(userData) {
+  async signup(userData) {
     try {
-      const users = this.getAllUsers();
+      const response = await api.post("/auth/signup", userData);
 
-      // Check if email already exists
-      const existingUser = users.find((u) => u.email === userData.email);
-      if (existingUser) {
+      if (response.data.success) {
+        // Store token and user data
+        localStorage.setItem(AUTH_TOKEN_KEY, response.data.token);
+        localStorage.setItem(
+          CURRENT_USER_KEY,
+          JSON.stringify(response.data.user)
+        );
+
         return {
-          success: false,
-          message: "Email already registered. Please login instead.",
+          success: true,
+          message: response.data.message,
+          user: response.data.user,
         };
       }
 
-      // Create new user
-      const newUser = {
-        id: Date.now().toString(),
-        name: userData.name,
-        email: userData.email,
-        password: userData.password, // In production, hash this!
-        phone: userData.phone || "",
-        location: userData.location || "", // Empty by default, user can update later
-        bio: "",
-        avatar: null,
-        verified: false,
-        joinedDate: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-      };
-
-      // Save user
-      users.push(newUser);
-      this.saveUsers(users);
-
-      // Auto login after signup
-      const token = this.generateToken(newUser.id);
-      localStorage.setItem(AUTH_TOKEN_KEY, token);
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(newUser));
-
-      return {
-        success: true,
-        message: "Account created successfully!",
-        user: newUser,
-        token,
-      };
-    } catch (error) {
       return {
         success: false,
-        message: "An error occurred during signup. Please try again.",
+        message: response.data.message || "Signup failed",
+      };
+    } catch (error) {
+      console.error("Signup error:", error);
+      return {
+        success: false,
+        message:
+          error.response?.data?.message ||
+          "Failed to create account. Please try again.",
       };
     }
   }
 
   // Login user
-  login(email, password) {
+  async login(email, password) {
     try {
-      const users = this.getAllUsers();
+      const response = await api.post("/auth/login", { email, password });
 
-      // Find user by email
-      const user = users.find((u) => u.email === email);
+      if (response.data.success) {
+        // Store token and user data
+        localStorage.setItem(AUTH_TOKEN_KEY, response.data.token);
+        localStorage.setItem(
+          CURRENT_USER_KEY,
+          JSON.stringify(response.data.user)
+        );
 
-      if (!user) {
         return {
-          success: false,
-          message: "Invalid username or password",
+          success: true,
+          message: response.data.message,
+          user: response.data.user,
         };
       }
 
-      // Check password
-      if (user.password !== password) {
-        return {
-          success: false,
-          message: "Invalid username or password",
-        };
-      }
-
-      // Generate token and save session
-      const token = this.generateToken(user.id);
-      localStorage.setItem(AUTH_TOKEN_KEY, token);
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
-
-      return {
-        success: true,
-        message: "Login successful!",
-        user,
-        token,
-      };
-    } catch (error) {
       return {
         success: false,
-        message: "An error occurred during login. Please try again.",
+        message: response.data.message || "Login failed",
+      };
+    } catch (error) {
+      console.error("Login error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "Invalid email or password",
       };
     }
   }
@@ -120,109 +95,105 @@ class AuthService {
     localStorage.removeItem(CURRENT_USER_KEY);
   }
 
-  // Check if user is authenticated
-  isAuthenticated() {
-    const token = localStorage.getItem(AUTH_TOKEN_KEY);
-    const user = localStorage.getItem(CURRENT_USER_KEY);
-    return !!(token && user);
-  }
-
-  // Get current user
-  getCurrentUser() {
-    const user = localStorage.getItem(CURRENT_USER_KEY);
-    return user ? JSON.parse(user) : null;
-  }
-
-  // Update current user
-  updateCurrentUser(updatedData) {
+  // Get current user profile from backend
+  async getProfile() {
     try {
-      const currentUser = this.getCurrentUser();
-      if (!currentUser) {
+      const response = await api.get("/auth/me");
+
+      if (response.data.success) {
+        // Update stored user data
+        localStorage.setItem(
+          CURRENT_USER_KEY,
+          JSON.stringify(response.data.user)
+        );
         return {
-          success: false,
-          message: "No user logged in",
+          success: true,
+          user: response.data.user,
         };
       }
 
-      // Update user data
-      const updatedUser = {
-        ...currentUser,
-        ...updatedData,
-        id: currentUser.id, // Prevent ID change
-        email: currentUser.email, // Prevent email change
-      };
-
-      // Update in users list
-      const users = this.getAllUsers();
-      const userIndex = users.findIndex((u) => u.id === currentUser.id);
-      if (userIndex !== -1) {
-        users[userIndex] = updatedUser;
-        this.saveUsers(users);
-      }
-
-      // Update current user in localStorage
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updatedUser));
-
-      return {
-        success: true,
-        message: "Profile updated successfully!",
-        user: updatedUser,
-      };
-    } catch (error) {
       return {
         success: false,
-        message: "Failed to update profile",
+        message: response.data.message || "Failed to get profile",
+      };
+    } catch (error) {
+      console.error("Get profile error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to get profile",
       };
     }
   }
 
-  // Get auth token
-  getToken() {
-    return localStorage.getItem(AUTH_TOKEN_KEY);
-  }
-
-  // Check if email exists
-  emailExists(email) {
-    const users = this.getAllUsers();
-    return users.some((user) => user.email === email);
-  }
-
-  // Reset password (for localStorage implementation)
-  resetPassword(email, newPassword) {
+  // Update user profile
+  async updateCurrentUser(updatedData) {
     try {
-      const users = this.getAllUsers();
-      const userIndex = users.findIndex((u) => u.email === email);
+      const response = await api.put("/auth/update", updatedData);
 
-      if (userIndex === -1) {
+      if (response.data.success) {
+        // Update stored user data
+        localStorage.setItem(
+          CURRENT_USER_KEY,
+          JSON.stringify(response.data.user)
+        );
+
         return {
-          success: false,
-          message: "Email not found in our records",
+          success: true,
+          message: response.data.message,
+          user: response.data.user,
         };
       }
 
-      // Update password
-      users[userIndex].password = newPassword; // In production, hash this!
-      this.saveUsers(users);
-
-      return {
-        success: true,
-        message:
-          "Password reset successfully! You can now login with your new password.",
-      };
-    } catch (error) {
-      console.error("Error resetting password:", error);
       return {
         success: false,
-        message: "Failed to reset password. Please try again.",
+        message: response.data.message || "Update failed",
+      };
+    } catch (error) {
+      console.error("Update profile error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to update profile",
       };
     }
   }
 
-  // Clear all auth data (for testing)
-  clearAllData() {
-    localStorage.removeItem(USERS_KEY);
-    localStorage.removeItem(CURRENT_USER_KEY);
-    localStorage.removeItem(AUTH_TOKEN_KEY);
+  // Change password
+  async changePassword(currentPassword, newPassword) {
+    try {
+      const response = await api.put("/auth/change-password", {
+        currentPassword,
+        newPassword,
+      });
+
+      return {
+        success: response.data.success,
+        message: response.data.message,
+      };
+    } catch (error) {
+      console.error("Change password error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to change password",
+      };
+    }
+  }
+
+  // Get user by ID (public profile)
+  async getUserById(userId) {
+    try {
+      const response = await api.get(`/auth/user/${userId}`);
+
+      return {
+        success: response.data.success,
+        user: response.data.user,
+      };
+    } catch (error) {
+      console.error("Get user error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "User not found",
+      };
+    }
   }
 }
 

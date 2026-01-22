@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
 
   // Signup function
   const signup = async (userData) => {
-    const result = authService.signup(userData);
+    const result = await authService.signup(userData);
     if (result.success) {
       setUser(result.user);
     }
@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }) => {
 
   // Login function
   const login = async (email, password) => {
-    const result = authService.login(email, password);
+    const result = await authService.login(email, password);
     if (result.success) {
       setUser(result.user);
     }
@@ -53,8 +53,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Update user profile
-  const updateUser = (updatedData) => {
-    const result = authService.updateCurrentUser(updatedData);
+  const updateUser = async (updatedData) => {
+    const result = await authService.updateCurrentUser(updatedData);
     if (result.success) {
       setUser(result.user);
     }
