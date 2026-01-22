@@ -22,7 +22,7 @@ class ProductsService {
   async getAllProducts(filters = {}) {
     try {
       const params = new URLSearchParams();
-      
+
       if (filters.category) params.append("category", filters.category);
       if (filters.condition) params.append("condition", filters.condition);
       if (filters.minPrice) params.append("minPrice", filters.minPrice);
@@ -34,7 +34,7 @@ class ProductsService {
       if (filters.limit) params.append("limit", filters.limit);
 
       const response = await api.get(`/products?${params.toString()}`);
-      
+
       return {
         success: true,
         products: response.data.products,
@@ -54,7 +54,7 @@ class ProductsService {
   async getProductById(id) {
     try {
       const response = await api.get(`/products/${id}`);
-      
+
       return {
         success: true,
         product: response.data.product,
@@ -72,7 +72,7 @@ class ProductsService {
   async createProduct(productData) {
     try {
       const response = await api.post("/products", productData);
-      
+
       return {
         success: true,
         message: response.data.message,
@@ -91,7 +91,7 @@ class ProductsService {
   async updateProduct(id, productData) {
     try {
       const response = await api.put(`/products/${id}`, productData);
-      
+
       return {
         success: true,
         message: response.data.message,
@@ -110,7 +110,7 @@ class ProductsService {
   async deleteProduct(id) {
     try {
       const response = await api.delete(`/products/${id}`);
-      
+
       return {
         success: true,
         message: response.data.message,
@@ -127,8 +127,10 @@ class ProductsService {
   // Get user's products
   async getUserProducts(userId, status = "available") {
     try {
-      const response = await api.get(`/products/user/${userId}?status=${status}`);
-      
+      const response = await api.get(
+        `/products/user/${userId}?status=${status}`
+      );
+
       return {
         success: true,
         products: response.data.products,
@@ -146,8 +148,11 @@ class ProductsService {
   // Add review to product
   async addReview(productId, reviewData) {
     try {
-      const response = await api.post(`/products/${productId}/reviews`, reviewData);
-      
+      const response = await api.post(
+        `/products/${productId}/reviews`,
+        reviewData
+      );
+
       return {
         success: true,
         message: response.data.message,
@@ -166,7 +171,7 @@ class ProductsService {
   async markAsSold(productId) {
     try {
       const response = await api.put(`/products/${productId}/sold`);
-      
+
       return {
         success: true,
         message: response.data.message,
@@ -181,14 +186,120 @@ class ProductsService {
     }
   }
 
-  // Get products by category
-  async getProductsByCategory(category, page = 1, limit = 20) {
-    return this.getAllProducts({ category, page, limit });
+  // Get my products (listings) - Authenticated user only
+  async getMyProducts(status = "all") {
+    try {
+      const params = status !== "all" ? `?status=${status}` : "";
+      const response = await api.get(`/products/my/products${params}`);
+
+      return {
+        success: true,
+        products: response.data.products,
+        count: response.data.count,
+      };
+    } catch (error) {
+      console.error("Get my products error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to load products",
+        products: [],
+      };
+    }
   }
 
-  // Search products
+  // Get my drafts - Authenticated user only
+  async getMyDrafts() {
+    try {
+      const response = await api.get("/products/my/drafts");
+
+      return {
+        success: true,
+        drafts: response.data.drafts,
+        count: response.data.count,
+      };
+    } catch (error) {
+      console.error("Get my drafts error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to load drafts",
+        drafts: [],
+      };
+    }
+  }
+
+  // Publish draft
+  async publishDraft(productId) {
+    try {
+      const response = await api.put(`/products/${productId}/publish`);
+
+      return {
+        success: true,
+        message: response.data.message,
+        product: response.data.product,
+      };
+    } catch (error) {
+      console.error("Publish draft error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to publish product",
+      };
+    }
+  }
+
+  // Get products by category (dedicated endpoint)
+  async getProductsByCategory(category, page = 1, limit = 20, sort = "newest") {
+    try {
+      const response = await api.get(
+        `/products/category/${category}?page=${page}&limit=${limit}&sort=${sort}`
+      );
+
+      return {
+        success: true,
+        products: response.data.products,
+        pagination: response.data.pagination,
+      };
+    } catch (error) {
+      console.error("Get products by category error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to load products",
+        products: [],
+      };
+    }
+  }
+
+  // Search products (dedicated search endpoint)
   async searchProducts(searchTerm, page = 1, limit = 20) {
-    return this.getAllProducts({ search: searchTerm, page, limit });
+    try {
+      if (!searchTerm || searchTerm.trim() === "") {
+        return {
+          success: true,
+          products: [],
+          query: searchTerm,
+          pagination: { total: 0, page: 1, pages: 0, limit },
+        };
+      }
+
+      const response = await api.get(
+        `/products/search?q=${encodeURIComponent(
+          searchTerm
+        )}&page=${page}&limit=${limit}`
+      );
+
+      return {
+        success: true,
+        products: response.data.products,
+        query: response.data.query,
+        pagination: response.data.pagination,
+      };
+    } catch (error) {
+      console.error("Search products error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "Search failed",
+        products: [],
+      };
+    }
   }
 
   // Get category name by ID

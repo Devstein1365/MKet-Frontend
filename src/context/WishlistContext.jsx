@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import wishlistService from "../services/wishlistService";
+import { useAuth } from "./AuthContext";
 
 const WishlistContext = createContext();
 
@@ -11,43 +13,98 @@ export const useWishlist = () => {
 };
 
 export const WishlistProvider = ({ children }) => {
-  const [wishlistItems, setWishlistItems] = useState(() => {
-    // Load wishlist from localStorage on init
-    const saved = localStorage.getItem("mket_wishlist");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const { isAuthenticated } = useAuth();
+  const [wishlistItems, setWishlistItems] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // Save to localStorage whenever wishlist changes
+  // Load wishlist from backend when user is authenticated
   useEffect(() => {
-    localStorage.setItem("mket_wishlist", JSON.stringify(wishlistItems));
-  }, [wishlistItems]);
+    if (isAuthenticated) {
+      loadWishlist();
+    } else {
+      setWishlistItems([]);
+    }
+  }, [isAuthenticated]);
 
-  const addToWishlist = (product) => {
-    setWishlistItems((prev) => {
-      // Check if already in wishlist
-      if (prev.find((item) => item.id === product.id)) {
-        return prev;
-      }
-      return [...prev, { ...product, addedAt: new Date().toISOString() }];
-    });
+  const loadWishlist = async () => {
+    setLoading(true);
+    const result = await wishlistService.getWishlist();
+    if (result.success) {
+      setWishlistItems(result.wishlist);
+    }
+    setLoading(false);
   };
 
-  const removeFromWishlist = (productId) => {
-    setWishlistItems((prev) => prev.filter((item) => item.id !== productId));
+  const addToWishlist = async (product) => {
+    if (!isAuthenticated) {
+      console.error("User must be logged in to add to wishlist");
+      return { success: false, message: "Please login to add to wishlist" };
+    }
+
+    const result = await wishlistService.addToWishlist(product._id || product.id);
+    if (result.success) {
+      await loadWishlist(); // Reload wishlist
+    }
+    return result;
+  };
+
+  const removeFromWishlist = async (productId) => {
+    if (!isAuthenticated) {
+      return { success: false, message: "Please login" };
+    }
+
+    const result = await wishlistService.removeFromWishlist(productId);
+    if (result.success) {
+      await loadWishlist(); // Reload wishlist
+    }
+    return result;
   };
 
   const isInWishlist = (productId) => {
-    return wishlistItems.some((item) => item.id === productId);
+    return wishlistItems.some(
+      (item) => item.product?._id === productId || item.product?.id === productId
+    );
   };
 
-  const clearWishlist = () => {
-    setWishlistItems([]);
+  const clearWishlist = async () => {
+    if (!isAuthenticated) {
+      return { success: false, message: "Please login" };
+    }
+
+    const result = await wishlistService.clearWishlist();
+    if (result.success) {
+      setWishlistItems([]);
+    }
+    return result;
   };
 
-  const toggleWishlist = (product) => {
-    if (isInWishlist(product.id)) {
-      removeFromWishlist(product.id);
+  const toggleWishlist = async (product) => {
+    const productId = product._id || product.id;
+    if (isInWishlist(productId)) {
+      return removeFromWishlist(productId);
     } else {
+      return addToWishlist(product);
+    }
+  };
+
+  const value = {
+    wishlistItems,
+    addToWishlist,
+    removeFromWishlist,
+    isInWishlist,
+    clearWishlist,
+    toggleWishlist,
+    loading,
+    wishlistCount: wishlistItems.length,
+  };
+
+  return (
+    <WishlistContext.Provider value={value}>
+      {children}
+    </WishlistContext.Provider>
+  );
+};
+
       addToWishlist(product);
     }
   };

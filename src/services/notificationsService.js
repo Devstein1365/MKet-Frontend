@@ -1,53 +1,136 @@
-// Notifications Service - Mock for now (will be integrated with backend later)
-// Storage key
-const NOTIFICATIONS_KEY = "mket_notifications";
+import api from "./api";
 
-// Load from localStorage
-const loadNotifications = () => {
-  try {
-    const stored = localStorage.getItem(NOTIFICATIONS_KEY);
-    return stored ? JSON.parse(stored) : getDefaultNotifications();
-  } catch (error) {
-    console.error("Error loading notifications:", error);
-    return getDefaultNotifications();
+// Notifications Service - Connected to Backend API
+
+class NotificationsService {
+  // Get notifications
+  async getNotifications(page = 1, limit = 20, unreadOnly = false) {
+    try {
+      const params = new URLSearchParams();
+      params.append("page", page);
+      params.append("limit", limit);
+      if (unreadOnly) params.append("unreadOnly", "true");
+
+      const response = await api.get(`/notifications?${params.toString()}`);
+      
+      return {
+        success: true,
+        notifications: response.data.notifications,
+        unreadCount: response.data.unreadCount,
+        pagination: response.data.pagination,
+      };
+    } catch (error) {
+      console.error("Get notifications error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to load notifications",
+        notifications: [],
+        unreadCount: 0,
+      };
+    }
   }
-};
 
-// Save to localStorage
-const saveNotifications = (notifications) => {
-  try {
-    localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(notifications));
-  } catch (error) {
-    console.error("Error saving notifications:", error);
+  // Mark notification as read
+  async markAsRead(notificationId) {
+    try {
+      const response = await api.put(`/notifications/${notificationId}/read`);
+      
+      return {
+        success: true,
+        message: response.data.message,
+        notification: response.data.notification,
+      };
+    } catch (error) {
+      console.error("Mark as read error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to mark as read",
+      };
+    }
   }
-};
 
-// Default mock notifications
-const getDefaultNotifications = () => [
-  {
-    id: 1,
-    type: "message",
-    title: "New Message",
-    message: "Aisha Mohammed sent you a message",
-    timestamp: new Date().toISOString(),
-    read: false,
-    link: "/dashboard/chat",
-  },
-  {
-    id: 2,
-    type: "product",
-    title: "Product Sold",
-    message: "Your iPhone 13 Pro Max has been marked as sold",
-    timestamp: new Date(Date.now() - 3600000).toISOString(),
-    read: false,
-    link: "/dashboard/profile",
-  },
-  {
-    id: 3,
-    type: "review",
-    title: "New Review",
-    message: "Someone left a review on your MacBook Pro listing",
-    timestamp: new Date(Date.now() - 7200000).toISOString(),
+  // Mark all notifications as read
+  async markAllAsRead() {
+    try {
+      const response = await api.put("/notifications/read-all");
+      
+      return {
+        success: true,
+        message: response.data.message,
+      };
+    } catch (error) {
+      console.error("Mark all as read error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to mark all as read",
+      };
+    }
+  }
+
+  // Delete notification
+  async deleteNotification(notificationId) {
+    try {
+      const response = await api.delete(`/notifications/${notificationId}`);
+      
+      return {
+        success: true,
+        message: response.data.message,
+      };
+    } catch (error) {
+      console.error("Delete notification error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to delete notification",
+      };
+    }
+  }
+
+  // Clear all notifications
+  async clearAllNotifications() {
+    try {
+      const response = await api.delete("/notifications");
+      
+      return {
+        success: true,
+        message: response.data.message,
+      };
+    } catch (error) {
+      console.error("Clear all notifications error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to clear notifications",
+      };
+    }
+  }
+
+  // Get unread count only
+  async getUnreadCount() {
+    try {
+      const response = await api.get("/notifications?limit=1");
+      
+      return {
+        success: true,
+        unreadCount: response.data.unreadCount,
+      };
+    } catch (error) {
+      console.error("Get unread count error:", error);
+      return {
+        success: false,
+        unreadCount: 0,
+      };
+    }
+  }
+}
+
+export default new NotificationsService();
+
+        unreadCount: 0,
+      };
+    }
+  }
+}
+
+export default new NotificationsService();
     read: false,
     link: "/dashboard/product/2",
   },

@@ -4,11 +4,29 @@ import { FaUser } from "react-icons/fa";
 const Avatar = ({
   src,
   alt = "User",
+  name,
   size = "md",
   status,
   className = "",
   onClick,
 }) => {
+  // Generate initials from name
+  const getInitials = () => {
+    if (!name) return null;
+
+    const nameParts = name.trim().split(" ");
+    if (nameParts.length === 1) {
+      // Single word: use first 2 letters
+      return nameParts[0].substring(0, 2).toUpperCase();
+    }
+    // Multiple words: use first letter of first and last name
+    return (
+      nameParts[0].charAt(0).toUpperCase() +
+      nameParts[nameParts.length - 1].charAt(0).toUpperCase()
+    );
+  };
+
+  const initials = getInitials();
   const sizes = {
     xs: "w-8 h-8 text-xs",
     sm: "w-10 h-10 text-sm",
@@ -51,6 +69,8 @@ const Avatar = ({
       >
         {src ? (
           <img src={src} alt={alt} className="w-full h-full object-cover" />
+        ) : initials ? (
+          <span>{initials}</span>
         ) : (
           <FaUser className="opacity-70" />
         )}

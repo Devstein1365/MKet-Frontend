@@ -18,7 +18,7 @@ import Button from "../../components/shared/Button";
 import Card from "../../components/shared/Card";
 import Avatar from "../../components/shared/Avatar";
 import Badge from "../../components/shared/Badge";
-import { getProductById } from "../../services/productsService";
+import productsService from "../../services/productsService";
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -37,8 +37,12 @@ const ProductDetails = () => {
     const fetchProduct = async () => {
       setLoading(true);
       try {
-        const data = await getProductById(parseInt(id));
-        setProduct(data);
+        const result = await productsService.getProductById(id);
+        if (result.success) {
+          setProduct(result.product);
+        } else {
+          console.error("Failed to fetch product:", result.message);
+        }
       } catch (error) {
         console.error("Error fetching product:", error);
       } finally {

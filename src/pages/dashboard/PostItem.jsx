@@ -23,6 +23,7 @@ import Input from "../../components/shared/Input";
 import Modal from "../../components/shared/Modal";
 import CustomSelect from "../../components/shared/CustomSelect";
 import { categories as categoriesData } from "../../services/productsService";
+import productsService from "../../services/productsService";
 import { generateProductDescription } from "../../services/geminiService";
 import {
   formatAsUserTyping,
@@ -462,7 +463,7 @@ const PostItem = () => {
   };
 
   // Handle form submit
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -479,25 +480,48 @@ const PostItem = () => {
       images,
     };
 
-    // TODO: Handle form submission to backend (send submitPayload)
-    console.log("Form Data:", submitPayload);
+    console.log("Submitting product:", submitPayload);
 
-    // Delete draft if it was loaded from drafts
-    if (currentDraftId) {
-      deleteDraft(currentDraftId);
+    // Show loading state
+    showModal("Posting...", "Please wait while we post your product", "info");
+
+    try {
+      // Submit to backend
+      const result = await productsService.createProduct(submitPayload);
+
+      if (result.success) {
+        // Delete draft if it was loaded from drafts
+        if (currentDraftId) {
+          deleteDraft(currentDraftId);
+        }
+
+        // Show success message
+        showModal(
+          "Success!",
+          result.message || "Product posted successfully!",
+          "success"
+        );
+
+        // Clear form after successful submission
+        setTimeout(() => {
+          clearForm();
+        }, 2000);
+      } else {
+        // Show error message
+        showModal(
+          "Error",
+          result.message || "Failed to post product. Please try again.",
+          "error"
+        );
+      }
+    } catch (error) {
+      console.error("Error posting product:", error);
+      showModal(
+        "Error",
+        "An error occurred while posting your product. Please try again.",
+        "error"
+      );
     }
-
-    // Show success message
-    showModal(
-      "Success!",
-      "Product posted successfully! (Backend integration pending)",
-      "success"
-    );
-
-    // Clear form after successful submission
-    setTimeout(() => {
-      clearForm();
-    }, 2000);
   };
 
   const conditions = ["New", "Used", "Fairly Used"];
