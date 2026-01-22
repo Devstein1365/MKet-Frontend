@@ -41,7 +41,9 @@ export const WishlistProvider = ({ children }) => {
       return { success: false, message: "Please login to add to wishlist" };
     }
 
-    const result = await wishlistService.addToWishlist(product._id || product.id);
+    const result = await wishlistService.addToWishlist(
+      product._id || product.id
+    );
     if (result.success) {
       await loadWishlist(); // Reload wishlist
     }
@@ -62,7 +64,8 @@ export const WishlistProvider = ({ children }) => {
 
   const isInWishlist = (productId) => {
     return wishlistItems.some(
-      (item) => item.product?._id === productId || item.product?.id === productId
+      (item) =>
+        item.product?._id === productId || item.product?.id === productId
     );
   };
 
@@ -95,27 +98,6 @@ export const WishlistProvider = ({ children }) => {
     clearWishlist,
     toggleWishlist,
     loading,
-    wishlistCount: wishlistItems.length,
-  };
-
-  return (
-    <WishlistContext.Provider value={value}>
-      {children}
-    </WishlistContext.Provider>
-  );
-};
-
-      addToWishlist(product);
-    }
-  };
-
-  const value = {
-    wishlistItems,
-    addToWishlist,
-    removeFromWishlist,
-    isInWishlist,
-    clearWishlist,
-    toggleWishlist,
     wishlistCount: wishlistItems.length,
   };
 

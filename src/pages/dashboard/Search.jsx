@@ -75,12 +75,14 @@ const Search = () => {
     { id: "popular", name: "Most Popular" },
   ];
 
-  // Load all products on mount
+  // Load all products on mount (for suggestions only)
   useEffect(() => {
     const loadProducts = async () => {
       try {
-        const products = await productsService.getAllProducts();
-        setAllProducts(products);
+        const result = await productsService.getAllProducts({ limit: 100 });
+        if (result.success && result.products) {
+          setAllProducts(result.products);
+        }
       } catch (error) {
         console.error("Error loading products:", error);
       }
@@ -157,8 +159,59 @@ const Search = () => {
     setSearchQuery(q);
 
     try {
-      const results = await productsService.searchProducts(q, filtersOverride || filters);
-      setSearchResults(results);
+      const result = await productsService.searchProducts(q, 1, 50);
+      
+      if (result.success) {
+        let results = result.products;
+        
+        // Apply client-side filters
+        const currentFilters = filtersOverride || filters;
+        
+        if (currentFilters.category !== 'all') {
+          results = results.filter(p => p.category === currentFilters.category);
+        }
+        
+        if (currentFilters.condition !== 'all') {
+          results = results.filter(p => p.condition?.toLowerCase() === currentFilters.condition.toLowerCase());
+        }
+        
+        if (currentFilters.location !== 'all') {
+          results = results.filter(p => p.location?.toLowerCase().includes(currentFilters.location.toLowerCase()));
+        }
+        
+        // Apply price range filter
+        if (currentFilters.priceRange) {
+          results = results.filter(p => 
+            p.price >= currentFilters.priceRange[0] && 
+            p.price <= currentFilters.priceRange[1]
+          );
+        }
+        
+        // Apply sorting
+        if (currentFilters.sortBy) {
+          switch (currentFilters.sortBy) {
+            case 'newest':
+              results.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+              break;
+            case 'price-low':
+              results.sort((a, b) => a.price - b.price);
+              break;
+            case 'price-high':
+              results.sort((a, b) => b.price - a.price);
+              break;
+            case 'popular':
+              results.sort((a, b) => (b.views || 0) - (a.views || 0));
+              break;
+            default: // relevance - keep backend order
+              break;
+          }
+        }
+        
+        setSearchResults(results);
+      } else {
+        console.error("Search error:", result.message);
+        setSearchResults([]);
+      }
     } catch (error) {
       console.error("Search error:", error);
       setSearchResults([]);

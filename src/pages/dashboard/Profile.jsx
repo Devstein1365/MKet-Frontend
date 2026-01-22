@@ -64,19 +64,31 @@ const Profile = () => {
   const loadMyListings = async () => {
     setLoading(true);
     try {
-      const allProducts = await productsService.getAllProducts();
-      const myProducts = allProducts.slice(0, 4);
-      setMyListings(myProducts);
+      const result = await productsService.getMyProducts("available");
 
-      const totalViews = myProducts.reduce((sum, p) => sum + (p.views || 0), 0);
-      setStats({
-        totalListings: myProducts.length,
-        totalViews: totalViews,
-        totalSold: 2,
-        activeListings: myProducts.length,
-      });
+      if (result.success && result.products) {
+        const myProducts = result.products.slice(0, 4);
+        setMyListings(myProducts);
+
+        const totalViews = result.products.reduce(
+          (sum, p) => sum + (p.views || 0),
+          0
+        );
+        setStats({
+          totalListings: result.products.length,
+          totalViews: totalViews,
+          totalSold: 2,
+          activeListings: result.products.filter(
+            (p) => p.status === "available"
+          ).length,
+        });
+      } else {
+        console.error("Failed to load products:", result.message);
+        setMyListings([]);
+      }
     } catch (error) {
       console.error("Error loading listings:", error);
+      setMyListings([]);
     } finally {
       setLoading(false);
     }

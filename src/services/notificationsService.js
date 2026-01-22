@@ -12,7 +12,7 @@ class NotificationsService {
       if (unreadOnly) params.append("unreadOnly", "true");
 
       const response = await api.get(`/notifications?${params.toString()}`);
-      
+
       return {
         success: true,
         notifications: response.data.notifications,
@@ -23,7 +23,8 @@ class NotificationsService {
       console.error("Get notifications error:", error);
       return {
         success: false,
-        message: error.response?.data?.message || "Failed to load notifications",
+        message:
+          error.response?.data?.message || "Failed to load notifications",
         notifications: [],
         unreadCount: 0,
       };
@@ -34,7 +35,7 @@ class NotificationsService {
   async markAsRead(notificationId) {
     try {
       const response = await api.put(`/notifications/${notificationId}/read`);
-      
+
       return {
         success: true,
         message: response.data.message,
@@ -53,7 +54,7 @@ class NotificationsService {
   async markAllAsRead() {
     try {
       const response = await api.put("/notifications/read-all");
-      
+
       return {
         success: true,
         message: response.data.message,
@@ -71,7 +72,7 @@ class NotificationsService {
   async deleteNotification(notificationId) {
     try {
       const response = await api.delete(`/notifications/${notificationId}`);
-      
+
       return {
         success: true,
         message: response.data.message,
@@ -80,7 +81,8 @@ class NotificationsService {
       console.error("Delete notification error:", error);
       return {
         success: false,
-        message: error.response?.data?.message || "Failed to delete notification",
+        message:
+          error.response?.data?.message || "Failed to delete notification",
       };
     }
   }
@@ -89,7 +91,7 @@ class NotificationsService {
   async clearAllNotifications() {
     try {
       const response = await api.delete("/notifications");
-      
+
       return {
         success: true,
         message: response.data.message,
@@ -98,7 +100,8 @@ class NotificationsService {
       console.error("Clear all notifications error:", error);
       return {
         success: false,
-        message: error.response?.data?.message || "Failed to clear notifications",
+        message:
+          error.response?.data?.message || "Failed to clear notifications",
       };
     }
   }
@@ -107,7 +110,7 @@ class NotificationsService {
   async getUnreadCount() {
     try {
       const response = await api.get("/notifications?limit=1");
-      
+
       return {
         success: true,
         unreadCount: response.data.unreadCount,
@@ -119,80 +122,6 @@ class NotificationsService {
         unreadCount: 0,
       };
     }
-  }
-}
-
-export default new NotificationsService();
-
-        unreadCount: 0,
-      };
-    }
-  }
-}
-
-export default new NotificationsService();
-    read: false,
-    link: "/dashboard/product/2",
-  },
-];
-
-class NotificationsService {
-  // Get all notifications
-  getAllNotifications() {
-    return loadNotifications();
-  }
-
-  // Get unread count
-  getUnreadCount() {
-    const notifications = loadNotifications();
-    return notifications.filter((n) => !n.read).length;
-  }
-
-  // Mark notification as read
-  markAsRead(notificationId) {
-    const notifications = loadNotifications();
-    const notification = notifications.find((n) => n.id === notificationId);
-    if (notification) {
-      notification.read = true;
-      saveNotifications(notifications);
-    }
-    return notifications;
-  }
-
-  // Mark all as read
-  markAllAsRead() {
-    const notifications = loadNotifications();
-    notifications.forEach((n) => (n.read = true));
-    saveNotifications(notifications);
-    return notifications;
-  }
-
-  // Delete notification
-  deleteNotification(notificationId) {
-    let notifications = loadNotifications();
-    notifications = notifications.filter((n) => n.id !== notificationId);
-    saveNotifications(notifications);
-    return notifications;
-  }
-
-  // Add new notification (for testing/demo)
-  addNotification(notification) {
-    const notifications = loadNotifications();
-    const newNotification = {
-      id: Date.now(),
-      ...notification,
-      timestamp: new Date().toISOString(),
-      read: false,
-    };
-    notifications.unshift(newNotification);
-    saveNotifications(notifications);
-    return notifications;
-  }
-
-  // Clear all notifications
-  clearAll() {
-    saveNotifications([]);
-    return [];
   }
 }
 

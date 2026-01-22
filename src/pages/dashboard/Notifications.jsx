@@ -28,10 +28,16 @@ const Notifications = () => {
   const loadNotifications = async () => {
     setLoading(true);
     try {
-      const data = await notificationsService.getAllNotifications();
-      setNotifications(data);
+      const result = await notificationsService.getNotifications(1, 50, false);
+      if (result.success && result.notifications) {
+        setNotifications(result.notifications);
+      } else {
+        console.error("Failed to load notifications:", result.message);
+        setNotifications([]);
+      }
     } catch (error) {
       console.error("Error loading notifications:", error);
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
@@ -39,8 +45,12 @@ const Notifications = () => {
 
   const handleMarkAllAsRead = async () => {
     try {
-      await notificationsService.markAllAsRead();
-      loadNotifications();
+      const result = await notificationsService.markAllAsRead();
+      if (result.success) {
+        loadNotifications();
+      } else {
+        console.error("Failed to mark all as read:", result.message);
+      }
     } catch (error) {
       console.error("Error marking all as read:", error);
     }
@@ -48,8 +58,12 @@ const Notifications = () => {
 
   const handleMarkAsRead = async (notificationId) => {
     try {
-      await notificationsService.markAsRead(notificationId);
-      loadNotifications();
+      const result = await notificationsService.markAsRead(notificationId);
+      if (result.success) {
+        loadNotifications();
+      } else {
+        console.error("Failed to mark as read:", result.message);
+      }
     } catch (error) {
       console.error("Error marking as read:", error);
     }

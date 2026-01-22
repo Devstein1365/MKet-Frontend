@@ -114,16 +114,22 @@ const Wishlist = () => {
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
           >
             <AnimatePresence mode="popLayout">
-              {wishlistItems.map((product) => (
+              {wishlistItems.map((item) => (
                 <motion.div
-                  key={product.id}
+                  key={item.product?._id || item.product?.id}
                   variants={itemVariants}
                   layout
                   exit="exit"
                 >
                   <ProductCard
-                    product={product}
-                    onClick={() => navigate(`/dashboard/product/${product.id}`)}
+                    product={item.product}
+                    onClick={() =>
+                      navigate(
+                        `/dashboard/product/${
+                          item.product?._id || item.product?.id
+                        }`
+                      )
+                    }
                   />
                 </motion.div>
               ))}

@@ -24,6 +24,7 @@ import Modal from "../../components/shared/Modal";
 import CustomSelect from "../../components/shared/CustomSelect";
 import { categories as categoriesData } from "../../services/productsService";
 import productsService from "../../services/productsService";
+import cloudinaryService from "../../services/cloudinaryService";
 import { generateProductDescription } from "../../services/geminiService";
 import {
   formatAsUserTyping,
@@ -39,6 +40,8 @@ const PostItem = () => {
   const [images, setImages] = useState([]);
   const [dragActive, setDragActive] = useState(false);
   const [tappedImageId, setTappedImageId] = useState(null); // For mobile tap to show remove button
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -286,7 +289,7 @@ const PostItem = () => {
   };
 
   // Handle image upload
-  const handleImageUpload = (files) => {
+  const handleImageUpload = async (files) => {
     const fileArray = Array.from(files);
     const remainingSlots = 6 - images.length;
 
@@ -299,13 +302,55 @@ const PostItem = () => {
       return;
     }
 
-    const newImages = fileArray.slice(0, remainingSlots).map((file) => ({
-      id: Math.random().toString(36).substr(2, 9),
-      file,
-      preview: URL.createObjectURL(file),
-    }));
+    // Validate all images before uploading
+    const validFiles = [];
+    for (const file of fileArray.slice(0, remainingSlots)) {
+      const validation = cloudinaryService.validateImage(file);
+      if (validation.isValid) {
+        validFiles.push(file);
+      } else {
+        showModal("Invalid Image", validation.error, "error");
+      }
+    }
 
-    setImages([...images, ...newImages]);
+    if (validFiles.length === 0) return;
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      // Upload to Cloudinary with progress tracking
+      const uploadedUrls = await cloudinaryService.uploadMultipleImages(
+        validFiles,
+        (progress) => {
+          setUploadProgress(progress);
+        }
+      );
+
+      // Add uploaded images with their Cloudinary URLs
+      const newImages = uploadedUrls.map((url, index) => ({
+        id: Math.random().toString(36).substr(2, 9),
+        url: url,
+        preview: cloudinaryService.getThumbnailUrl(url, 400),
+      }));
+
+      setImages([...images, ...newImages]);
+      showModal(
+        "Success",
+        `${validFiles.length} image(s) uploaded successfully!`,
+        "success"
+      );
+    } catch (error) {
+      console.error("Error uploading images:", error);
+      showModal(
+        "Upload Failed",
+        error.message || "Failed to upload images. Please try again.",
+        "error"
+      );
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
   };
 
   // Handle drag and drop
@@ -470,14 +515,24 @@ const PostItem = () => {
       return;
     }
 
-    // Prepare submission payload: convert formatted price strings to numbers
+    // Check if images have been uploaded to Cloudinary
+    if (images.length > 0 && !images[0].url) {
+      showModal(
+        "Images not uploaded",
+        "Please wait for images to finish uploading to Cloudinary.",
+        "warning"
+      );
+      return;
+    }
+
+    // Prepare submission payload with Cloudinary URLs
     const submitPayload = {
       ...formData,
       price: parseToNumber(formData.price),
       originalPrice: formData.originalPrice
         ? parseToNumber(formData.originalPrice)
         : null,
-      images,
+      images: images.map((img) => img.url), // Send Cloudinary URLs instead of file objects
     };
 
     console.log("Submitting product:", submitPayload);
@@ -624,7 +679,7 @@ const PostItem = () => {
                 ? "border-[#7E22CE] bg-[#7E22CE]/5"
                 : "border-gray-300 hover:border-[#7E22CE]"
             } ${
-              images.length >= 6
+              images.length >= 6 || isUploading
                 ? "opacity-50 cursor-not-allowed"
                 : "cursor-pointer"
             }`}
@@ -633,7 +688,7 @@ const PostItem = () => {
             onDragOver={handleDrag}
             onDrop={handleDrop}
             onClick={() => {
-              if (images.length < 6) {
+              if (images.length < 6 && !isUploading) {
                 document.getElementById("file-input").click();
               }
             }}
@@ -645,18 +700,39 @@ const PostItem = () => {
               accept="image/*"
               onChange={(e) => handleImageUpload(e.target.files)}
               className="hidden"
-              disabled={images.length >= 6}
+              disabled={images.length >= 6 || isUploading}
             />
 
-            <FaCloudUploadAlt className="text-5xl text-[#7E22CE] mx-auto mb-4" />
-            <h3 className="text-lg font-inter font-semibold text-[#111827] mb-2">
-              {images.length >= 6
-                ? "Maximum images reached"
-                : "Drop images here or click to upload"}
-            </h3>
-            <p className="text-sm text-[#4B5563] font-instrument">
-              Minimum 1 image, Maximum 6 images (JPG, PNG, WEBP)
-            </p>
+            {isUploading ? (
+              <>
+                <FaSpinner className="text-5xl text-[#7E22CE] mx-auto mb-4 animate-spin" />
+                <h3 className="text-lg font-inter font-semibold text-[#111827] mb-2">
+                  Uploading to Cloudinary...
+                </h3>
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-4">
+                  <div
+                    className="bg-[#7E22CE] h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
+                </div>
+                <p className="text-sm text-[#4B5563] font-instrument mt-2">
+                  {uploadProgress}% complete
+                </p>
+              </>
+            ) : (
+              <>
+                <FaCloudUploadAlt className="text-5xl text-[#7E22CE] mx-auto mb-4" />
+                <h3 className="text-lg font-inter font-semibold text-[#111827] mb-2">
+                  {images.length >= 6
+                    ? "Maximum images reached"
+                    : "Drop images here or click to upload"}
+                </h3>
+                <p className="text-sm text-[#4B5563] font-instrument">
+                  Minimum 1 image, Maximum 6 images (JPG, PNG, WEBP, max 10MB
+                  each)
+                </p>
+              </>
+            )}
           </div>
 
           {errors.images && (
