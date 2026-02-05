@@ -87,14 +87,21 @@ const UserProfile = () => {
 
   useEffect(() => {
     const loadUserData = async () => {
+      // Check if user is viewing their own profile and redirect to Profile page
+      if (currentUserId && currentUserId.toString() === userId.toString()) {
+        navigate("/dashboard/profile", { replace: true });
+        return;
+      }
+
       setLoading(true);
       try {
         // Get all products
-        const allProducts = await productsService.getAllProducts();
+        const response = await productsService.getAllProducts();
+        const allProducts = response.products || [];
 
         // Find products by this seller and get seller info from first product
         const sellerProducts = allProducts.filter(
-          (product) => product.seller.id.toString() === userId
+          (product) => product.seller.id.toString() === userId.toString(),
         );
 
         if (sellerProducts.length > 0) {
@@ -104,20 +111,21 @@ const UserProfile = () => {
           // Build user profile from seller data
           setUser({
             id: sellerInfo.id,
-            name: sellerInfo.name,
-            avatar: sellerInfo.avatar,
-            verified: sellerInfo.verified || false,
+            name: sellerInfo.fullName,
+            avatar: sellerInfo.avatarUrl,
+            avatarColor: sellerInfo.avatarColor,
+            verified: sellerInfo.isVerified || false,
             bio:
               sellerInfo.bio ||
               "Passionate about providing quality products and excellent service!",
             location: sellerInfo.location || "Minna, Niger State",
-            memberSince: sellerInfo.memberSince || "2024-01-15",
+            memberSince: sellerInfo.createdAt || "2024-01-15",
             responseTime: sellerInfo.responseTime || "Within 2 hours",
-            rating: sellerInfo.rating || 4.5,
+            rating: sellerInfo.averageRating || 4.5,
             totalReviews: sellerInfo.totalReviews || 12,
             totalProducts: sellerProducts.length,
             totalSales:
-              sellerInfo.totalSales || Math.floor(sellerProducts.length * 2.5),
+              sellerInfo.totalSold || Math.floor(sellerProducts.length * 2.5),
           });
 
           setUserProducts(sellerProducts);
@@ -204,7 +212,7 @@ const UserProfile = () => {
             const sum = combined.reduce((s, r) => s + (r.rating || 0), 0);
             const avg = combined.length
               ? sum / combined.length
-              : sellerInfo.rating || 0;
+              : sellerInfo.averageRating || 0;
             setUser((prev) => ({
               ...(prev || {}),
               rating: Number(avg.toFixed(1)),
@@ -214,21 +222,8 @@ const UserProfile = () => {
             setReviews(mockReviews);
           }
         } else {
-          // If no products found for this seller, show default data
-          setUser({
-            id: userId,
-            name: "User",
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
-            verified: false,
-            bio: "No bio available",
-            location: "Location not specified",
-            memberSince: "2024-01-15",
-            responseTime: "Response time not available",
-            rating: 0,
-            totalReviews: 0,
-            totalProducts: 0,
-            totalSales: 0,
-          });
+          // If no products found for this seller, set user to null to show "User not found"
+          setUser(null);
           setUserProducts([]);
         }
       } catch (error) {
@@ -318,7 +313,7 @@ const UserProfile = () => {
 
         // update state
         setReviews((prev) =>
-          (prev || []).map((r) => (r.id === updated.id ? updated : r))
+          (prev || []).map((r) => (r.id === updated.id ? updated : r)),
         );
 
         // persist
@@ -464,9 +459,15 @@ const UserProfile = () => {
             <Card>
               <div className="text-center">
                 <div className="relative inline-block mb-4">
-                  <Avatar src={user.avatar} alt={user.name} size="2xl" />
+                  <Avatar
+                    src={user.avatar}
+                    alt={user.name}
+                    name={user.name}
+                    fallbackColor={user.avatarColor}
+                    size="2xl"
+                  />
                   {user.verified && (
-                    <div className="absolute bottom-0 right-0 w-8 h-8 bg-[#14B8A6] rounded-full flex items-center justify-center border-4 border-white">
+                    <div className="absolute bottom-0 right-0 w-8 h-8 bg-[#10B981] rounded-full flex items-center justify-center border-4 border-white">
                       <FaCheckCircle className="text-white text-sm" />
                     </div>
                   )}
@@ -668,7 +669,7 @@ const UserProfile = () => {
                       // show the user's own review with an edit button
                       (() => {
                         const my = reviews.find(
-                          (r) => String(r.authorId) === String(currentUserId)
+                          (r) => String(r.authorId) === String(currentUserId),
                         );
                         if (!my) {
                           return (
@@ -695,7 +696,7 @@ const UserProfile = () => {
                                   </div>
                                   <div className="text-xs text-gray-500">
                                     {new Date(
-                                      my.createdAt || my.date
+                                      my.createdAt || my.date,
                                     ).toLocaleDateString()}
                                   </div>
                                 </div>
@@ -771,7 +772,7 @@ const UserProfile = () => {
                               </h4>
                               <p className="text-xs text-gray-500 font-instrument">
                                 {new Date(
-                                  review.createdAt || review.date
+                                  review.createdAt || review.date,
                                 ).toLocaleDateString("en-US", {
                                   month: "long",
                                   day: "numeric",

@@ -7,6 +7,7 @@ const Avatar = ({
   name,
   size = "md",
   status,
+  fallbackColor,
   className = "",
   onClick,
 }) => {
@@ -52,6 +53,9 @@ const Avatar = ({
     away: "bg-yellow-500",
   };
 
+  // Determine background style
+  const bgStyle = fallbackColor ? { backgroundColor: fallbackColor } : {};
+
   return (
     <div
       className={`relative inline-block ${className}`}
@@ -62,10 +66,11 @@ const Avatar = ({
       <div
         className={`
           ${sizes[size]} rounded-full overflow-hidden
-          bg-gradient-to-br from-[#7E22CE] to-[#14B8A6]
+          ${!fallbackColor ? "bg-gradient-to-br from-[#7E22CE] to-[#14B8A6]" : ""}
           flex items-center justify-center text-white font-inter font-semibold
           ${onClick ? "cursor-pointer hover:opacity-90 transition-opacity" : ""}
         `}
+        style={bgStyle}
       >
         {src ? (
           <img src={src} alt={alt} className="w-full h-full object-cover" />

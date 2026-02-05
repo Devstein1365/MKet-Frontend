@@ -24,6 +24,11 @@ import Modal from "../../components/shared/Modal";
 import CustomSelect from "../../components/shared/CustomSelect";
 import { categories as categoriesData } from "../../services/productsService";
 import productsService from "../../services/productsService";
+import {
+  locationAreas,
+  specificLocations,
+  getLocationDisplayName,
+} from "../../data/locations";
 import cloudinaryService from "../../services/cloudinaryService";
 import { generateProductDescription } from "../../services/geminiService";
 import {
@@ -49,7 +54,8 @@ const PostItem = () => {
     originalPrice: "",
     category: "",
     condition: "Used",
-    location: "",
+    locationArea: "",
+    locationSpecific: "",
   });
   const [errors, setErrors] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);
@@ -272,7 +278,8 @@ const PostItem = () => {
       originalPrice: "",
       category: "",
       condition: "Used",
-      location: "",
+      locationArea: "",
+      locationSpecific: "",
     });
     setImages([]);
     setCurrentDraftId(null);
@@ -532,8 +539,11 @@ const PostItem = () => {
     if (!formData.category) {
       newErrors.category = "Please select a category";
     }
-    if (!formData.location) {
-      newErrors.location = "Location is required";
+    if (!formData.locationArea) {
+      newErrors.locationArea = "Please select campus area";
+    }
+    if (!formData.locationSpecific) {
+      newErrors.locationSpecific = "Please select specific location";
     }
     if (images.length === 0) {
       newErrors.images = "At least 1 image is required";
@@ -581,6 +591,11 @@ const PostItem = () => {
     // Prepare submission payload with Cloudinary image data
     const submitPayload = {
       ...formData,
+      // Combine location fields into single display string
+      location: getLocationDisplayName(
+        formData.locationArea,
+        formData.locationSpecific,
+      ),
       price: parseToNumber(formData.price),
       originalPrice: formData.originalPrice
         ? parseToNumber(formData.originalPrice)
@@ -590,6 +605,10 @@ const PostItem = () => {
         public_id: img.public_id,
       })),
     };
+
+    // Remove the separate location fields from payload (keep for form state only)
+    delete submitPayload.locationArea;
+    delete submitPayload.locationSpecific;
 
     console.log("Submitting product:", submitPayload);
 
@@ -636,14 +655,11 @@ const PostItem = () => {
   };
 
   const conditions = ["New", "Used", "Fairly Used"];
-  const locations = [
-    "Bosso Campus",
-    "Gidan Kwano",
-    "Main Campus",
-    "Tunga",
-    "Minna Town",
-    "Other",
-  ];
+
+  // Available specific locations based on selected area
+  const availableSpecificLocations = formData.locationArea
+    ? specificLocations[formData.locationArea] || []
+    : [];
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6">
@@ -1019,20 +1035,59 @@ const PostItem = () => {
             </h2>
           </div>
 
-          <CustomSelect
-            label="Where is this item located?"
-            name="location"
-            value={formData.location}
-            onChange={handleInputChange}
-            options={locations.map((loc) => ({
-              value: loc,
-              label: loc,
-            }))}
-            placeholder="Select location"
-            icon={FaMapMarkerAlt}
-            error={errors.location}
-            required
-          />
+          <div className="space-y-4">
+            {/* Step 1: Select Area (Off-Campus, Inside Campus, Bosso) */}
+            <CustomSelect
+              label="Campus Area"
+              name="locationArea"
+              value={formData.locationArea}
+              onChange={(e) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  locationArea: e.target.value,
+                  locationSpecific: "", // Reset specific location when area changes
+                }));
+              }}
+              options={locationAreas.map((area) => ({
+                value: area.id,
+                label: area.name,
+                description: area.description,
+              }))}
+              placeholder="Select campus area"
+              icon={FaMapMarkerAlt}
+              error={errors.locationArea}
+              required
+            />
+
+            {/* Step 2: Select Specific Location (only shown after area is selected) */}
+            {formData.locationArea && (
+              <CustomSelect
+                label="Specific Location"
+                name="locationSpecific"
+                value={formData.locationSpecific}
+                onChange={handleInputChange}
+                options={availableSpecificLocations.map((loc) => ({
+                  value: loc.id,
+                  label: loc.name,
+                }))}
+                placeholder={`Select location in ${locationAreas.find((a) => a.id === formData.locationArea)?.name}`}
+                icon={FaMapMarkerAlt}
+                error={errors.locationSpecific}
+                required
+              />
+            )}
+
+            {/* Show warning for Bosso (distant location) */}
+            {formData.locationArea === "bosso" && (
+              <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <span className="text-amber-600 text-sm">⚠️</span>
+                <p className="text-sm text-amber-700 font-instrument">
+                  Note: Bosso is quite far from the main campus area. This might
+                  affect delivery or meetup options.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Submit Buttons */}

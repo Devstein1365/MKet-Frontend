@@ -68,7 +68,7 @@ const Settings = () => {
     message,
     type = "info",
     showCancel = false,
-    onConfirm = null
+    onConfirm = null,
   ) => {
     setModal({ isOpen: true, title, message, type, showCancel, onConfirm });
   };
@@ -185,7 +185,7 @@ const Settings = () => {
       () => {
         logout();
         navigate("/auth", { replace: true });
-      }
+      },
     );
   };
 
@@ -294,11 +294,11 @@ const Settings = () => {
         <Card>
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#7E22CE] to-[#14B8A6] flex items-center justify-center text-white text-2xl font-bold">
-              {user?.name?.charAt(0) || "U"}
+              {user?.fullName?.charAt(0) || "U"}
             </div>
             <div className="flex-1">
               <h3 className="font-inter font-semibold text-gray-900">
-                {user?.name || "User"}
+                {user?.fullName || "User"}
               </h3>
               <p className="text-sm text-gray-600 font-instrument">
                 {user?.email || "email@example.com"}

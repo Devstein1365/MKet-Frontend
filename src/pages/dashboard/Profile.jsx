@@ -21,14 +21,14 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
   const [profileData, setProfileData] = useState({
-    name: user?.name || "",
+    name: user?.fullName || "",
     email: user?.email || "",
     phone: user?.phone || "",
     location: user?.location || "",
     bio: user?.bio || "",
-    avatar: user?.avatar || null,
-    verified: user?.verified || false,
-    joinedDate: user?.joinedDate || new Date().toISOString(),
+    avatar: user?.avatarUrl || null,
+    verified: user?.isVerified || false,
+    joinedDate: user?.createdAt || new Date().toISOString(),
   });
 
   const [stats, setStats] = useState({
@@ -72,14 +72,14 @@ const Profile = () => {
 
         const totalViews = result.products.reduce(
           (sum, p) => sum + (p.views || 0),
-          0
+          0,
         );
         setStats({
           totalListings: result.products.length,
           totalViews: totalViews,
           totalSold: 2,
           activeListings: result.products.filter(
-            (p) => p.status === "available"
+            (p) => p.status === "available",
           ).length,
         });
       } else {
@@ -126,7 +126,7 @@ const Profile = () => {
       showModal(
         "Error",
         "Failed to update profile. Please try again.",
-        "error"
+        "error",
       );
     }
   };

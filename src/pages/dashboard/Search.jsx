@@ -16,6 +16,7 @@ import Input from "../../components/shared/Input";
 import Button from "../../components/shared/Button";
 import Badge from "../../components/shared/Badge";
 import productsService from "../../services/productsService";
+import { locationAreas, specificLocations, getAllLocationsFlat } from "../../data/locations";
 
 const Search = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -31,7 +32,8 @@ const Search = () => {
     category: "all",
     condition: "all",
     priceRange: [0, 1000000],
-    location: "all",
+    locationArea: "all",
+    locationSpecific: "all",
     sortBy: "relevance",
   });
   const [searchResults, setSearchResults] = useState([]);
@@ -60,12 +62,17 @@ const Search = () => {
 
   const locations = [
     { id: "all", name: "All Locations" },
-    { id: "bosso", name: "Bosso Campus" },
-    { id: "main", name: "Main Campus" },
-    { id: "gidan-kwano", name: "Gidan Kwano" },
-    { id: "tunga", name: "Tunga" },
-    { id: "maitumbi", name: "Maitumbi" },
+    ...locationAreas.map((area) => ({
+      id: area.id,
+      name: area.name,
+      isArea: true,
+    })),
   ];
+  
+  // Get specific locations for selected area
+  const specificLocationOptions = filters.locationArea && filters.locationArea !== "all"
+    ? specificLocations[filters.locationArea] || []
+    : [];
 
   const sortOptions = [
     { id: "relevance", name: "Most Relevant" },
@@ -676,27 +683,82 @@ const Search = () => {
                       <FaMapMarkerAlt className="text-[#14B8A6]" />
                       Location
                     </h3>
-                    <div className="space-y-2">
-                      {locations.map((location) => (
-                        <label
-                          key={location.id}
-                          className="flex items-center gap-2 cursor-pointer group"
-                        >
-                          <input
-                            type="radio"
-                            name="location"
-                            value={location.id}
-                            checked={filters.location === location.id}
-                            onChange={(e) =>
-                              handleFilterChange("location", e.target.value)
-                            }
-                            className="w-4 h-4 text-[#7E22CE] border-gray-300 focus:ring-[#7E22CE]"
-                          />
-                          <span className="text-sm text-[#4B5563] group-hover:text-[#111827] font-instrument">
-                            {location.name}
-                          </span>
+                    <div className="space-y-4">
+                      {/* Campus Area Selection */}
+                      <div>
+                        <label className="text-xs text-[#6B7280] font-instrument mb-2 block">
+                          Campus Area
                         </label>
-                      ))}
+                        <div className="space-y-2">
+                          {locations.map((location) => (
+                            <label
+                              key={location.id}
+                              className="flex items-center gap-2 cursor-pointer group"
+                            >
+                              <input
+                                type="radio"
+                                name="locationArea"
+                                value={location.id}
+                                checked={filters.locationArea === location.id}
+                                onChange={(e) => {
+                                  handleFilterChange("locationArea", e.target.value);
+                                  handleFilterChange("locationSpecific", "all"); // Reset specific location
+                                }}
+                                className="w-4 h-4 text-[#7E22CE] border-gray-300 focus:ring-[#7E22CE]"
+                              />
+                              <span className="text-sm text-[#4B5563] group-hover:text-[#111827] font-instrument">
+                                {location.name}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Specific Location Selection (shown when area is selected) */}
+                      {specificLocationOptions.length > 0 && (
+                        <div className="pt-3 border-t border-gray-100">
+                          <label className="text-xs text-[#6B7280] font-instrument mb-2 block">
+                            Specific Location
+                          </label>
+                          <div className="space-y-2 max-h-40 overflow-y-auto">
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                              <input
+                                type="radio"
+                                name="locationSpecific"
+                                value="all"
+                                checked={filters.locationSpecific === "all"}
+                                onChange={(e) =>
+                                  handleFilterChange("locationSpecific", e.target.value)
+                                }
+                                className="w-4 h-4 text-[#7E22CE] border-gray-300 focus:ring-[#7E22CE]"
+                              />
+                              <span className="text-sm text-[#4B5563] group-hover:text-[#111827] font-instrument">
+                                All in this area
+                              </span>
+                            </label>
+                            {specificLocationOptions.map((location) => (
+                              <label
+                                key={location.id}
+                                className="flex items-center gap-2 cursor-pointer group"
+                              >
+                                <input
+                                  type="radio"
+                                  name="locationSpecific"
+                                  value={location.id}
+                                  checked={filters.locationSpecific === location.id}
+                                  onChange={(e) =>
+                                    handleFilterChange("locationSpecific", e.target.value)
+                                  }
+                                  className="w-4 h-4 text-[#7E22CE] border-gray-300 focus:ring-[#7E22CE]"
+                                />
+                                <span className="text-sm text-[#4B5563] group-hover:text-[#111827] font-instrument">
+                                  {location.name}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 

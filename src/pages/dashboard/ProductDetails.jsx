@@ -56,14 +56,14 @@ const ProductDetails = () => {
   const handlePrevImage = (e) => {
     e.stopPropagation();
     setCurrentImageIndex((prev) =>
-      prev === 0 ? (product.images?.length || 1) - 1 : prev - 1
+      prev === 0 ? (product.images?.length || 1) - 1 : prev - 1,
     );
   };
 
   const handleNextImage = (e) => {
     e.stopPropagation();
     setCurrentImageIndex((prev) =>
-      prev === (product.images?.length || 1) - 1 ? 0 : prev + 1
+      prev === (product.images?.length || 1) - 1 ? 0 : prev + 1,
     );
   };
 
@@ -89,14 +89,14 @@ const ProductDetails = () => {
     if (isLeftSwipe) {
       // Swipe left - go to next image
       setCurrentImageIndex((prev) =>
-        prev === (product.images?.length || 1) - 1 ? 0 : prev + 1
+        prev === (product.images?.length || 1) - 1 ? 0 : prev + 1,
       );
     }
 
     if (isRightSwipe) {
       // Swipe right - go to previous image
       setCurrentImageIndex((prev) =>
-        prev === 0 ? (product.images?.length || 1) - 1 : prev - 1
+        prev === 0 ? (product.images?.length || 1) - 1 : prev - 1,
       );
     }
   };
@@ -134,7 +134,7 @@ const ProductDetails = () => {
     const shareData = {
       title: product.title,
       text: `Check out this ${product.title} for ₦${parseInt(
-        product.price
+        product.price,
       ).toLocaleString()}`,
       url: window.location.href,
     };
@@ -203,11 +203,17 @@ const ProductDetails = () => {
     );
   }
 
-  const images = product.images || [product.image];
+  const images = Array.isArray(product.images)
+    ? product.images.map((img) => img.url || img)
+    : typeof product.images === "string"
+      ? [product.images]
+      : product.image
+        ? [product.image]
+        : [];
   const isWishlisted = isInWishlist(product.id);
   const discount = product.originalPrice
     ? Math.round(
-        ((product.originalPrice - product.price) / product.originalPrice) * 100
+        ((product.originalPrice - product.price) / product.originalPrice) * 100,
       )
     : 0;
 
@@ -304,8 +310,8 @@ const ProductDetails = () => {
                         product.condition === "New"
                           ? "success"
                           : product.condition === "Fairly Used"
-                          ? "warning"
-                          : "info"
+                            ? "warning"
+                            : "info"
                       }
                     >
                       {product.condition}
@@ -390,21 +396,24 @@ const ProductDetails = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Avatar
-                    src={product.seller.avatar}
-                    alt={product.seller.name}
+                    src={product.seller.avatarUrl}
+                    alt={product.seller.fullName}
+                    name={product.seller.fullName}
+                    fallbackColor={product.seller.avatarColor}
                     size="lg"
                   />
                   <div>
                     <div className="flex items-center gap-2">
-                      <h4 className="font-instrument font-semibold text-gray-900">
-                        {product.seller.name}
+                      <h4 className="font-inter font-semibold text-gray-900">
+                        {product.seller.fullName}
                       </h4>
-                      {product.seller.verified && (
-                        <FaCheckCircle className="text-[#14B8A6] text-sm" />
+                      {product.seller.isVerified && (
+                        <FaCheckCircle className="text-[#10B981] text-sm" />
                       )}
                     </div>
                     <p className="text-sm text-gray-600 font-instrument">
-                      Member since 2024
+                      Member since{" "}
+                      {new Date(product.seller.createdAt).getFullYear()}
                     </p>
                   </div>
                 </div>
