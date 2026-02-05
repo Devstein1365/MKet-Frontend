@@ -32,7 +32,7 @@ const Auth = () => {
   const [signupData, setSignupData] = useState({
     fullName: "",
     studentId: "",
-    matricNumber: "",
+    phone: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -179,7 +179,8 @@ const Auth = () => {
         name: signupData.fullName,
         email: signupData.email,
         password: signupData.password,
-        phone: signupData.matricNumber, // Store matric number in phone field for now
+        phone: signupData.phone,
+        studentId: signupData.studentId,
       });
 
       if (result.success) {
@@ -248,7 +249,7 @@ const Auth = () => {
       // Reset password
       const result = authService.resetPassword(
         forgotPasswordData.email,
-        forgotPasswordData.newPassword
+        forgotPasswordData.newPassword,
       );
 
       if (result.success) {
@@ -476,22 +477,29 @@ const Auth = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-[#111827] mb-2 font-inter">
-                    Matric Number
+                    Phone Number
                   </label>
                   <div className="relative">
                     <FaIdCard className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#4B5563]" />
                     <input
-                      type="text"
-                      name="matricNumber"
-                      value={signupData.matricNumber}
-                      onChange={handleSignupChange}
+                      type="tel"
+                      name="phone"
+                      value={signupData.phone}
+                      onChange={(e) => {
+                        // Only allow numbers and limit to 11 digits
+                        const value = e.target.value
+                          .replace(/\D/g, "")
+                          .slice(0, 11);
+                        setSignupData({ ...signupData, phone: value });
+                      }}
                       required
-                      placeholder="2022/1/12345CS"
+                      placeholder="08012345678"
+                      maxLength="11"
                       className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#7E22CE] focus:border-transparent transition-all outline-none font-instrument"
                     />
                   </div>
                   <p className="text-xs text-[#4B5563] mt-1 font-instrument">
-                    Your official matriculation number for verification
+                    Enter your 11-digit phone number for verification
                   </p>
                 </div>
 

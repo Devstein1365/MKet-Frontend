@@ -45,11 +45,21 @@ const DashboardHome = () => {
     const loadProducts = async () => {
       setLoading(true);
       try {
-        const data = await productsService.getAllProducts();
-        setProducts(data);
-        setFilteredProducts(data);
+        const result = await productsService.getAllProducts();
+        console.log("Dashboard products loaded:", result);
+
+        if (result.success && result.products) {
+          setProducts(result.products);
+          setFilteredProducts(result.products);
+        } else {
+          console.error("Failed to load products:", result.message);
+          setProducts([]);
+          setFilteredProducts([]);
+        }
       } catch (error) {
         console.error("Error loading products:", error);
+        setProducts([]);
+        setFilteredProducts([]);
       } finally {
         setLoading(false);
       }
@@ -60,8 +70,10 @@ const DashboardHome = () => {
   // Load unread notifications count
   const loadUnreadCount = async () => {
     try {
-      const count = await notificationsService.getUnreadCount();
-      setUnreadCount(count);
+      const result = await notificationsService.getUnreadCount();
+      if (result.success) {
+        setUnreadCount(result.unreadCount || 0);
+      }
     } catch (error) {
       console.error("Error loading unread count:", error);
     }
@@ -91,7 +103,7 @@ const DashboardHome = () => {
         .filter(
           (product) =>
             product.title.toLowerCase().includes(query) ||
-            product.description.toLowerCase().includes(query)
+            product.description.toLowerCase().includes(query),
         )
         .slice(0, 5);
 
@@ -144,11 +156,34 @@ const DashboardHome = () => {
     setSearchQuery(searchInput);
 
     try {
-      const results = await productsService.searchProducts(
-        searchInput,
-        filters
-      );
-      setFilteredProducts(results);
+      const result = await productsService.searchProducts(searchInput, 1, 50);
+      console.log("Search result:", result);
+
+      if (result.success && result.products) {
+        // Apply client-side filters
+        let results = result.products;
+
+        if (filters.category !== "all") {
+          results = results.filter((p) => p.category === filters.category);
+        }
+
+        if (filters.condition !== "all") {
+          results = results.filter(
+            (p) =>
+              p.condition?.toLowerCase() === filters.condition.toLowerCase(),
+          );
+        }
+
+        if (filters.location !== "all") {
+          results = results.filter((p) =>
+            p.location?.toLowerCase().includes(filters.location.toLowerCase()),
+          );
+        }
+
+        setFilteredProducts(results);
+      } else {
+        setFilteredProducts([]);
+      }
     } catch (error) {
       console.error("Search error:", error);
       setFilteredProducts([]);
@@ -174,13 +209,19 @@ const DashboardHome = () => {
       setSearchLoading(true);
 
       try {
-        const results = await productsService.searchProducts(
+        const result = await productsService.searchProducts(
           suggestion.title,
-          filters
+          1,
+          50,
         );
-        setFilteredProducts(results);
+        if (result.success && result.products) {
+          setFilteredProducts(result.products);
+        } else {
+          setFilteredProducts([]);
+        }
       } catch (error) {
         console.error("Search error:", error);
+        setFilteredProducts([]);
       } finally {
         setSearchLoading(false);
       }
@@ -196,7 +237,7 @@ const DashboardHome = () => {
       try {
         const results = await productsService.searchProducts(
           suggestion.name,
-          newFilters
+          newFilters,
         );
         setFilteredProducts(results);
       } catch (error) {
@@ -239,7 +280,7 @@ const DashboardHome = () => {
 
   const activeFiltersCount = Object.values(filters).filter(
     (value) =>
-      value !== "all" && value !== "relevance" && value !== filters.priceRange
+      value !== "all" && value !== "relevance" && value !== filters.priceRange,
   ).length;
 
   return (

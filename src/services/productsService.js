@@ -128,7 +128,7 @@ class ProductsService {
   async getUserProducts(userId, status = "available") {
     try {
       const response = await api.get(
-        `/products/user/${userId}?status=${status}`
+        `/products/user/${userId}?status=${status}`,
       );
 
       return {
@@ -150,7 +150,7 @@ class ProductsService {
     try {
       const response = await api.post(
         `/products/${productId}/reviews`,
-        reviewData
+        reviewData,
       );
 
       return {
@@ -190,7 +190,7 @@ class ProductsService {
   async getMyProducts(status = "all") {
     try {
       const params = status !== "all" ? `?status=${status}` : "";
-      const response = await api.get(`/products/my/products${params}`);
+      const response = await api.get(`/products/my-products${params}`);
 
       return {
         success: true,
@@ -250,7 +250,7 @@ class ProductsService {
   async getProductsByCategory(category, page = 1, limit = 20, sort = "newest") {
     try {
       const response = await api.get(
-        `/products/category/${category}?page=${page}&limit=${limit}&sort=${sort}`
+        `/products/category/${category}?page=${page}&limit=${limit}&sort=${sort}`,
       );
 
       return {
@@ -282,8 +282,8 @@ class ProductsService {
 
       const response = await api.get(
         `/products/search?q=${encodeURIComponent(
-          searchTerm
-        )}&page=${page}&limit=${limit}`
+          searchTerm,
+        )}&page=${page}&limit=${limit}`,
       );
 
       return {

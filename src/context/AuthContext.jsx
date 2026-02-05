@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import authService from "../services/authService";
+import chatService from "../services/chatService";
 
 const AuthContext = createContext();
 
@@ -21,11 +22,18 @@ export const AuthProvider = ({ children }) => {
       if (authService.isAuthenticated()) {
         const currentUser = authService.getCurrentUser();
         setUser(currentUser);
+        // Connect to Socket.io for real-time chat
+        chatService.connect();
       }
       setLoading(false);
     };
 
     checkAuth();
+
+    // Cleanup: Disconnect Socket.io on unmount
+    return () => {
+      chatService.disconnect();
+    };
   }, []);
 
   // Signup function
@@ -42,6 +50,8 @@ export const AuthProvider = ({ children }) => {
     const result = await authService.login(email, password);
     if (result.success) {
       setUser(result.user);
+      // Connect to Socket.io for real-time chat
+      chatService.connect();
     }
     return result;
   };
@@ -50,6 +60,8 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     authService.logout();
     setUser(null);
+    // Disconnect from Socket.io
+    chatService.disconnect();
   };
 
   // Update user profile

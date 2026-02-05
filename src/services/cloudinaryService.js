@@ -49,7 +49,7 @@ class CloudinaryService {
 
         xhr.open(
           "POST",
-          `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`
+          `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
         );
         xhr.send(formData);
       });
@@ -66,11 +66,11 @@ class CloudinaryService {
    * Upload multiple images to Cloudinary
    * @param {FileList|Array} files - Array of image files
    * @param {Function} onProgress - Callback for overall progress
-   * @returns {Promise<Array>} - Array of upload results
+   * @returns {Promise<Array>} - Array of upload results {public_id, url}
    */
   async uploadMultipleImages(files, onProgress) {
     const filesArray = Array.from(files);
-    const results = [];
+    const uploadedImages = [];
     let completedCount = 0;
 
     for (const file of filesArray) {
@@ -84,7 +84,15 @@ class CloudinaryService {
           }
         });
 
-        results.push(result);
+        if (result.success && result.url) {
+          uploadedImages.push({
+            public_id: result.public_id,
+            url: result.url,
+          });
+        } else {
+          throw new Error(result.error || "Upload failed");
+        }
+
         completedCount++;
 
         if (onProgress) {
@@ -92,15 +100,12 @@ class CloudinaryService {
         }
       } catch (error) {
         console.error("Error uploading file:", error);
-        results.push({
-          success: false,
-          error: error.message,
-        });
         completedCount++;
+        throw error; // Throw error to be caught in PostItem
       }
     }
 
-    return results;
+    return uploadedImages;
   }
 
   /**
@@ -170,21 +175,28 @@ class CloudinaryService {
     const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
     const maxSize = 10 * 1024 * 1024; // 10MB
 
+    console.log(
+      "Validating image:",
+      file.name,
+      file.type,
+      `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+    );
+
     if (!validTypes.includes(file.type)) {
       return {
-        valid: false,
+        isValid: false,
         error: "Please upload a valid image file (JPEG, PNG, or WebP)",
       };
     }
 
     if (file.size > maxSize) {
       return {
-        valid: false,
-        error: "Image size must be less than 10MB",
+        isValid: false,
+        error: `Image size must be less than 10MB (current: ${(file.size / 1024 / 1024).toFixed(2)}MB)`,
       };
     }
 
-    return { valid: true };
+    return { isValid: true };
   }
 }
 

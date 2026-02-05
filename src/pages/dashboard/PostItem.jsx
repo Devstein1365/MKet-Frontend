@@ -137,7 +137,7 @@ const PostItem = () => {
         showModal(
           "No Content",
           "Please add some content before saving as draft.",
-          "warning"
+          "warning",
         );
       }
       return;
@@ -178,7 +178,7 @@ const PostItem = () => {
           (d) =>
             d.formData.title &&
             d.formData.title.toLowerCase().trim() ===
-              formData.title.toLowerCase().trim()
+              formData.title.toLowerCase().trim(),
         );
 
         if (similarDraftIndex >= 0 && !currentDraftId) {
@@ -187,7 +187,7 @@ const PostItem = () => {
             showModal(
               "Similar Draft Exists",
               `A draft with the title "${formData.title}" already exists. The existing draft has been updated.`,
-              "info"
+              "info",
             );
           }
           // Update the similar draft
@@ -212,7 +212,7 @@ const PostItem = () => {
         showModal(
           "Draft Saved",
           "Your listing has been saved as a draft!",
-          "success"
+          "success",
         );
       }
     } catch (error) {
@@ -221,7 +221,7 @@ const PostItem = () => {
         showModal(
           "Save Failed",
           "Failed to save draft. Please try again.",
-          "error"
+          "error",
         );
       }
     }
@@ -240,7 +240,7 @@ const PostItem = () => {
     showModal(
       "Draft Loaded",
       "Draft loaded successfully. Continue editing!",
-      "success"
+      "success",
     );
   };
 
@@ -297,7 +297,7 @@ const PostItem = () => {
       showModal(
         "Maximum Images Reached",
         "You can only upload up to 6 images.",
-        "warning"
+        "warning",
       );
       return;
     }
@@ -306,10 +306,17 @@ const PostItem = () => {
     const validFiles = [];
     for (const file of fileArray.slice(0, remainingSlots)) {
       const validation = cloudinaryService.validateImage(file);
+      console.log("Validation result:", validation);
       if (validation.isValid) {
         validFiles.push(file);
       } else {
-        showModal("Invalid Image", validation.error, "error");
+        console.error("Image validation failed:", validation.error);
+        showModal(
+          "Invalid Image",
+          validation.error || "Unknown validation error",
+          "error",
+        );
+        return; // Stop processing on first invalid file
       }
     }
 
@@ -320,32 +327,37 @@ const PostItem = () => {
 
     try {
       // Upload to Cloudinary with progress tracking
-      const uploadedUrls = await cloudinaryService.uploadMultipleImages(
+      const uploadedImages = await cloudinaryService.uploadMultipleImages(
         validFiles,
         (progress) => {
           setUploadProgress(progress);
-        }
+        },
       );
 
-      // Add uploaded images with their Cloudinary URLs
-      const newImages = uploadedUrls.map((url, index) => ({
+      console.log("Cloudinary upload results:", uploadedImages);
+
+      // Add uploaded images with their Cloudinary URLs and public_ids
+      const newImages = uploadedImages.map((image) => ({
         id: Math.random().toString(36).substr(2, 9),
-        url: url,
-        preview: cloudinaryService.getThumbnailUrl(url, 400),
+        url: image.url,
+        public_id: image.public_id,
+        preview: cloudinaryService.getThumbnailUrl(image.url, 400),
       }));
 
+      console.log("New images to add:", newImages);
       setImages([...images, ...newImages]);
+
       showModal(
         "Success",
         `${validFiles.length} image(s) uploaded successfully!`,
-        "success"
+        "success",
       );
     } catch (error) {
       console.error("Error uploading images:", error);
       showModal(
         "Upload Failed",
         error.message || "Failed to upload images. Please try again.",
-        "error"
+        "error",
       );
     } finally {
       setIsUploading(false);
@@ -418,28 +430,59 @@ const PostItem = () => {
 
   // Generate AI description
   const handleGenerateDescription = async () => {
-    // Validate required fields for AI generation
+    // Validate ALL required fields before AI generation
+    // This ensures AI has complete context to generate accurate description
+
     if (!formData.title.trim()) {
       showModal(
         "Title Required",
-        "Please enter a product title first!",
-        "warning"
+        "Please enter a product title before using AI generation!",
+        "warning",
       );
       return;
     }
+
     if (!formData.category) {
       showModal(
         "Category Required",
-        "Please select a category first!",
-        "warning"
+        "Please select a category before using AI generation!",
+        "warning",
       );
       return;
     }
+
+    if (!formData.condition) {
+      showModal(
+        "Condition Required",
+        "Please select a condition (New, Used, or Fairly Used) before using AI generation!",
+        "warning",
+      );
+      return;
+    }
+
     if (!formData.price || Number(cleanNumber(formData.price)) <= 0) {
       showModal(
         "Price Required",
-        "Please enter a valid price first!",
-        "warning"
+        "Please enter a valid selling price before using AI generation!",
+        "warning",
+      );
+      return;
+    }
+
+    if (!formData.location || !formData.location.trim()) {
+      showModal(
+        "Location Required",
+        "Please select or enter a location before using AI generation!",
+        "warning",
+      );
+      return;
+    }
+
+    if (images.length === 0) {
+      showModal(
+        "Images Required",
+        "Please upload at least one product image before using AI generation!",
+        "warning",
       );
       return;
     }
@@ -455,12 +498,18 @@ const PostItem = () => {
       if (errors.description) {
         setErrors((prev) => ({ ...prev, description: "" }));
       }
+
+      showModal(
+        "Description Generated!",
+        "AI has generated a product description. Feel free to edit it to add more details!",
+        "success",
+      );
     } catch (error) {
       console.error("Error generating description:", error);
       showModal(
         "Generation Failed",
         "Failed to generate description. Please try again or write it manually.",
-        "error"
+        "error",
       );
     } finally {
       setIsGenerating(false);
@@ -500,7 +549,7 @@ const PostItem = () => {
       showModal(
         "Incomplete Form",
         "Please fill all required fields to preview.",
-        "warning"
+        "warning",
       );
       return;
     }
@@ -516,23 +565,30 @@ const PostItem = () => {
     }
 
     // Check if images have been uploaded to Cloudinary
+    console.log("Current images array:", images);
+    console.log("First image:", images[0]);
+
     if (images.length > 0 && !images[0].url) {
+      console.error("Images missing URL property:", images);
       showModal(
         "Images not uploaded",
         "Please wait for images to finish uploading to Cloudinary.",
-        "warning"
+        "warning",
       );
       return;
     }
 
-    // Prepare submission payload with Cloudinary URLs
+    // Prepare submission payload with Cloudinary image data
     const submitPayload = {
       ...formData,
       price: parseToNumber(formData.price),
       originalPrice: formData.originalPrice
         ? parseToNumber(formData.originalPrice)
         : null,
-      images: images.map((img) => img.url), // Send Cloudinary URLs instead of file objects
+      images: images.map((img) => ({
+        url: img.url,
+        public_id: img.public_id,
+      })),
     };
 
     console.log("Submitting product:", submitPayload);
@@ -554,7 +610,7 @@ const PostItem = () => {
         showModal(
           "Success!",
           result.message || "Product posted successfully!",
-          "success"
+          "success",
         );
 
         // Clear form after successful submission
@@ -566,7 +622,7 @@ const PostItem = () => {
         showModal(
           "Error",
           result.message || "Failed to post product. Please try again.",
-          "error"
+          "error",
         );
       }
     } catch (error) {
@@ -574,7 +630,7 @@ const PostItem = () => {
       showModal(
         "Error",
         "An error occurred while posting your product. Please try again.",
-        "error"
+        "error",
       );
     }
   };
@@ -627,7 +683,7 @@ const PostItem = () => {
                       showModal(
                         "New Draft Started",
                         "You can now create a new listing!",
-                        "success"
+                        "success",
                       );
                     },
                     showCancel: true,
@@ -756,7 +812,7 @@ const PostItem = () => {
                       onClick={() => {
                         // Toggle tapped state for mobile - tap to show/hide remove button
                         setTappedImageId(
-                          tappedImageId === image.id ? null : image.id
+                          tappedImageId === image.id ? null : image.id,
                         );
                       }}
                     >
