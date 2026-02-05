@@ -115,111 +115,38 @@ const UserProfile = () => {
             avatar: sellerInfo.avatarUrl,
             avatarColor: sellerInfo.avatarColor,
             verified: sellerInfo.isVerified || false,
-            bio:
-              sellerInfo.bio ||
-              "Passionate about providing quality products and excellent service!",
-            location: sellerInfo.location || "Minna, Niger State",
-            memberSince: sellerInfo.createdAt || "2024-01-15",
-            responseTime: sellerInfo.responseTime || "Within 2 hours",
-            rating: sellerInfo.averageRating || 4.5,
-            totalReviews: sellerInfo.totalReviews || 12,
+            bio: sellerInfo.bio || "",
+            location: sellerInfo.location || "",
+            memberSince: sellerInfo.createdAt || "",
+            responseTime: sellerInfo.responseTime || "",
+            rating: sellerInfo.averageRating || 0,
+            totalReviews: sellerInfo.totalReviews || 0,
             totalProducts: sellerProducts.length,
-            totalSales:
-              sellerInfo.totalSold || Math.floor(sellerProducts.length * 2.5),
+            totalSales: sellerInfo.totalSold || 0,
           });
 
           setUserProducts(sellerProducts);
 
-          // Generate mock reviews for this seller
-          const mockReviews = [
-            {
-              id: 1,
-              reviewer: {
-                name: "Ibrahim Musa",
-                avatar:
-                  "https://api.dicebear.com/7.x/avataaars/svg?seed=Ibrahim",
-              },
-              rating: 5,
-              comment:
-                "Excellent seller! Product was exactly as described. Fast response and smooth transaction.",
-              productTitle: sellerProducts[0]?.title,
-              date: "2024-10-20T14:30:00Z",
-            },
-            {
-              id: 2,
-              reviewer: {
-                name: "Fatima Abubakar",
-                avatar:
-                  "https://api.dicebear.com/7.x/avataaars/svg?seed=Fatima",
-              },
-              rating: 4,
-              comment:
-                "Good seller, product in good condition. Delivery was a bit delayed but overall satisfied.",
-              productTitle:
-                sellerProducts[1]?.title || sellerProducts[0]?.title,
-              date: "2024-10-18T09:15:00Z",
-            },
-            {
-              id: 3,
-              reviewer: {
-                name: "David Adeyemi",
-                avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=David",
-              },
-              rating: 5,
-              comment:
-                "Highly recommended! Very professional and trustworthy seller.",
-              productTitle: sellerProducts[0]?.title,
-              date: "2024-10-15T16:45:00Z",
-            },
-            {
-              id: 4,
-              reviewer: {
-                name: "Blessing Okon",
-                avatar:
-                  "https://api.dicebear.com/7.x/avataaars/svg?seed=Blessing",
-              },
-              rating: 4,
-              comment:
-                "Nice product, seller was very responsive to my questions. Would buy again.",
-              productTitle:
-                sellerProducts[2]?.title || sellerProducts[0]?.title,
-              date: "2024-10-12T11:20:00Z",
-            },
-            {
-              id: 5,
-              reviewer: {
-                name: "Emmanuel Okeke",
-                avatar:
-                  "https://api.dicebear.com/7.x/avataaars/svg?seed=Emmanuel",
-              },
-              rating: 5,
-              comment:
-                "Perfect! Everything went smoothly. Great communication and genuine products.",
-              productTitle:
-                sellerProducts[1]?.title || sellerProducts[0]?.title,
-              date: "2024-10-10T08:30:00Z",
-            },
-          ];
-          // load any stored reviews for this seller (persisted by demo flow)
+          // Load real reviews from localStorage only (no mock data)
           try {
             const storedKey = `reviews:${sellerInfo.id}`;
             const storedRaw = window.localStorage.getItem(storedKey);
             const stored = storedRaw ? JSON.parse(storedRaw) : [];
-            const combined = [...stored, ...mockReviews];
-            setReviews(combined);
+            setReviews(stored);
 
-            // compute aggregated rating
-            const sum = combined.reduce((s, r) => s + (r.rating || 0), 0);
-            const avg = combined.length
-              ? sum / combined.length
-              : sellerInfo.averageRating || 0;
-            setUser((prev) => ({
-              ...(prev || {}),
-              rating: Number(avg.toFixed(1)),
-              totalReviews: combined.length,
-            }));
+            // compute aggregated rating from real reviews
+            if (stored.length > 0) {
+              const sum = stored.reduce((s, r) => s + (r.rating || 0), 0);
+              const avg = sum / stored.length;
+              setUser((prev) => ({
+                ...(prev || {}),
+                rating: Number(avg.toFixed(1)),
+                totalReviews: stored.length,
+              }));
+            }
           } catch (err) {
-            setReviews(mockReviews);
+            console.error('Error loading reviews:', err);
+            setReviews([]);
           }
         } else {
           // If no products found for this seller, set user to null to show "User not found"
@@ -480,9 +407,11 @@ const UserProfile = () => {
                     Verified Seller
                   </Badge>
                 )}
-                <p className="text-gray-600 font-instrument text-sm mb-4">
-                  {user.bio}
-                </p>
+                {user.bio && (
+                  <p className="text-gray-600 font-instrument text-sm mb-4">
+                    {user.bio}
+                  </p>
+                )}
 
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-3 mb-4 p-4 bg-gray-50 rounded-lg">
@@ -525,39 +454,45 @@ const UserProfile = () => {
                 Information
               </h3>
               <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <FaMapMarkerAlt className="text-[#14B8A6] mt-1" />
-                  <div>
-                    <p className="text-sm font-inter font-semibold text-gray-900">
-                      Location
-                    </p>
-                    <p className="text-sm text-gray-600 font-instrument">
-                      {user.location}
-                    </p>
+                {user.location && (
+                  <div className="flex items-start gap-3">
+                    <FaMapMarkerAlt className="text-[#14B8A6] mt-1" />
+                    <div>
+                      <p className="text-sm font-inter font-semibold text-gray-900">
+                        Location
+                      </p>
+                      <p className="text-sm text-gray-600 font-instrument">
+                        {user.location}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <FaClock className="text-[#14B8A6] mt-1" />
-                  <div>
-                    <p className="text-sm font-inter font-semibold text-gray-900">
-                      Member Since
-                    </p>
-                    <p className="text-sm text-gray-600 font-instrument">
-                      {formatMemberSince(user.memberSince)}
-                    </p>
+                )}
+                {user.memberSince && (
+                  <div className="flex items-start gap-3">
+                    <FaClock className="text-[#14B8A6] mt-1" />
+                    <div>
+                      <p className="text-sm font-inter font-semibold text-gray-900">
+                        Member Since
+                      </p>
+                      <p className="text-sm text-gray-600 font-instrument">
+                        {formatMemberSince(user.memberSince)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <FaStar className="text-[#14B8A6] mt-1" />
-                  <div>
-                    <p className="text-sm font-inter font-semibold text-gray-900">
-                      Response Time
-                    </p>
-                    <p className="text-sm text-gray-600 font-instrument">
-                      {user.responseTime}
-                    </p>
+                )}
+                {user.responseTime && (
+                  <div className="flex items-start gap-3">
+                    <FaStar className="text-[#14B8A6] mt-1" />
+                    <div>
+                      <p className="text-sm font-inter font-semibold text-gray-900">
+                        Response Time
+                      </p>
+                      <p className="text-sm text-gray-600 font-instrument">
+                        {user.responseTime}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
                 <div className="flex items-start gap-3">
                   <FaStar className="text-yellow-500 mt-1" />
                   <div>
