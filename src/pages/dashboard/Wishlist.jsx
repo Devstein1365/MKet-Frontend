@@ -1,7 +1,13 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaHeart, FaHome, FaShoppingBag, FaTrash } from "react-icons/fa";
+import {
+  FaHeart,
+  FaHome,
+  FaShoppingBag,
+  FaTrash,
+  FaBell,
+} from "react-icons/fa";
 import { useWishlist } from "../../context/WishlistContext";
 import ProductCard from "../../components/dashboard/ProductCard";
 import Button from "../../components/shared/Button";
@@ -27,7 +33,7 @@ const Wishlist = () => {
     message,
     type = "confirm",
     showCancel = true,
-    onConfirm = null
+    onConfirm = null,
   ) => {
     setModal({ isOpen: true, title, message, type, showCancel, onConfirm });
   };
@@ -93,7 +99,7 @@ const Wishlist = () => {
                     "Are you sure you want to clear your entire wishlist?",
                     "confirm",
                     true,
-                    () => clearWishlist()
+                    () => clearWishlist(),
                   );
                 }}
               >
@@ -127,7 +133,7 @@ const Wishlist = () => {
                       navigate(
                         `/dashboard/product/${
                           item.product?._id || item.product?.id
-                        }`
+                        }`,
                       )
                     }
                   />
@@ -189,7 +195,7 @@ const Wishlist = () => {
 
               <div className="text-center p-6 bg-white rounded-lg border border-gray-200">
                 <div className="w-12 h-12 bg-[#14B8A6]/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-xl">🔔</span>
+                  <FaBell className="text-xl text-[#14B8A6]" />
                 </div>
                 <h3 className="font-inter font-semibold text-[#111827] mb-2">
                   Get Notified

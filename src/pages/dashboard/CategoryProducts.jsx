@@ -57,19 +57,19 @@ const CategoryProducts = () => {
     // Filter by price range
     if (priceRange.min) {
       filtered = filtered.filter(
-        (p) => parseFloat(p.price) >= parseFloat(priceRange.min)
+        (p) => parseFloat(p.price) >= parseFloat(priceRange.min),
       );
     }
     if (priceRange.max) {
       filtered = filtered.filter(
-        (p) => parseFloat(p.price) <= parseFloat(priceRange.max)
+        (p) => parseFloat(p.price) <= parseFloat(priceRange.max),
       );
     }
 
     // Filter by condition
     if (condition !== "all") {
       filtered = filtered.filter(
-        (p) => p.condition?.toLowerCase() === condition
+        (p) => p.condition?.toLowerCase() === condition,
       );
     }
 
@@ -131,7 +131,7 @@ const CategoryProducts = () => {
               className="w-16 h-16 rounded-full flex items-center justify-center text-3xl"
               style={{ backgroundColor: "white" }}
             >
-              {category.icon}
+              {category.icon && <category.icon />}
             </div>
             <div>
               <h1 className="text-3xl font-inter font-bold mb-2 text-white">

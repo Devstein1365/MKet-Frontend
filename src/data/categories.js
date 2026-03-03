@@ -1,86 +1,101 @@
+import {
+  FaMobileAlt,
+  FaCouch,
+  FaBook,
+  FaTshirt,
+  FaFootballBall,
+  FaHome,
+  FaSpa,
+  FaBicycle,
+  FaUtensils,
+  FaTools,
+  FaGuitar,
+  FaBox,
+} from "react-icons/fa";
+
 // Categories data for MKET
 export const categories = [
   {
     id: "electronics",
     name: "Electronics",
-    icon: "📱",
+    icon: FaMobileAlt,
     description: "Phones, laptops, gadgets, and accessories",
     color: "#7E22CE", // Purple
   },
   {
     id: "furniture",
     name: "Furniture",
-    icon: "🪑",
+    icon: FaCouch,
     description: "Beds, chairs, tables, and home furniture",
     color: "#14B8A6", // Teal
   },
   {
     id: "books",
     name: "Books & Stationery",
-    icon: "📚",
+    icon: FaBook,
     description: "Textbooks, novels, notes, and stationery",
     color: "#F59E0B", // Amber
   },
   {
     id: "fashion",
     name: "Fashion & Clothing",
-    icon: "👕",
+    icon: FaTshirt,
     description: "Clothes, shoes, bags, and accessories",
     color: "#EC4899", // Pink
   },
   {
     id: "sports",
     name: "Sports & Fitness",
-    icon: "⚽",
+    icon: FaFootballBall,
     description: "Sports equipment, gym gear, and accessories",
     color: "#10B981", // Green
   },
   {
     id: "home",
     name: "Home & Kitchen",
-    icon: "🏠",
+    icon: FaHome,
     description: "Kitchen items, utensils, and home decor",
     color: "#EF4444", // Red
   },
   {
     id: "beauty",
     name: "Beauty & Personal Care",
-    icon: "💄",
+    icon: FaSpa,
     description: "Cosmetics, skincare, and personal care items",
     color: "#8B5CF6", // Violet
   },
   {
     id: "vehicles",
     name: "Vehicles & Parts",
-    icon: "🚲",
+    icon: FaBicycle,
     description: "Bicycles, motorcycles, and vehicle accessories",
     color: "#3B82F6", // Blue
   },
   {
     id: "food",
     name: "Food & Groceries",
-    icon: "🍔",
+    icon: FaUtensils,
     description: "Snacks, groceries, and food items",
     color: "#F97316", // Orange
   },
   {
     id: "services",
     name: "Services",
-    icon: "🔧",
+    icon: FaTools,
     description: "Repair, tutoring, and other services",
     color: "#6366F1", // Indigo
   },
   {
     id: "music",
     name: "Music & Instruments",
-    icon: "🎸",
+    icon: FaGuitar,
     description: "Musical instruments and audio equipment",
     color: "#A855F7", // Purple
   },
   {
     id: "other",
     name: "Other",
-    icon: "📦",
+    icon: FaBox,
     description: "Miscellaneous items",
     color: "#6B7280", // Gray
   },
@@ -100,7 +115,7 @@ export const getCategoryName = (id) => {
 // Get category icon by ID
 export const getCategoryIcon = (id) => {
   const category = getCategoryById(id);
-  return category ? category.icon : "📦";
+  return category ? category.icon : FaBox;
 };
 
 // Get category color by ID

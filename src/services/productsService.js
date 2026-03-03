@@ -1,20 +1,33 @@
 import api from "./api";
+import {
+  FaMobileAlt,
+  FaCouch,
+  FaBook,
+  FaTshirt,
+  FaFootballBall,
+  FaSpa,
+  FaUtensils,
+  FaTools,
+  FaCar,
+  FaHome,
+  FaBox,
+} from "react-icons/fa";
 
 // Products Service - Connected to Backend API
 
 // Export categories (keep this for UI dropdowns)
 export const categories = [
-  { id: "electronics", name: "Electronics", icon: "📱" },
-  { id: "fashion", name: "Fashion", icon: "👕" },
-  { id: "books", name: "Books", icon: "📚" },
-  { id: "furniture", name: "Furniture", icon: "🛋️" },
-  { id: "sports", name: "Sports", icon: "⚽" },
-  { id: "beauty", name: "Beauty", icon: "💄" },
-  { id: "food", name: "Food", icon: "🍔" },
-  { id: "services", name: "Services", icon: "🔧" },
-  { id: "vehicles", name: "Vehicles", icon: "🚗" },
-  { id: "real-estate", name: "Real Estate", icon: "🏠" },
-  { id: "other", name: "Other", icon: "📦" },
+  { id: "electronics", name: "Electronics", icon: FaMobileAlt },
+  { id: "fashion", name: "Fashion", icon: FaTshirt },
+  { id: "books", name: "Books", icon: FaBook },
+  { id: "furniture", name: "Furniture", icon: FaCouch },
+  { id: "sports", name: "Sports", icon: FaFootballBall },
+  { id: "beauty", name: "Beauty", icon: FaSpa },
+  { id: "food", name: "Food", icon: FaUtensils },
+  { id: "services", name: "Services", icon: FaTools },
+  { id: "vehicles", name: "Vehicles", icon: FaCar },
+  { id: "real-estate", name: "Real Estate", icon: FaHome },
+  { id: "other", name: "Other", icon: FaBox },
 ];
 
 class ProductsService {
@@ -311,7 +324,7 @@ class ProductsService {
   // Get category icon by ID
   getCategoryIcon(categoryId) {
     const category = categories.find((cat) => cat.id === categoryId);
-    return category ? category.icon : "📦";
+    return category ? category.icon : FaBox;
   }
 }
 

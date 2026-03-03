@@ -7,7 +7,7 @@ import { categories as categoriesData } from "../../data/categories";
 const CategoryGrid = () => {
   // Show 4 categories on mobile/tablet, 5 on desktop
   const [isMobile, setIsMobile] = React.useState(
-    typeof window !== "undefined" && window.innerWidth < 1024
+    typeof window !== "undefined" && window.innerWidth < 1024,
   );
 
   React.useEffect(() => {
@@ -75,7 +75,9 @@ const CategoryGrid = () => {
               to={`/dashboard/categories/${category.id}`}
               className="block p-4 bg-white rounded-lg border border-gray-200 hover:border-[#7E22CE] hover:shadow-md transition-all group"
             >
-              <div className="text-3xl mb-2">{category.icon}</div>
+              <div className="text-3xl mb-2">
+                {category.icon && <category.icon />}
+              </div>
               <h3 className="font-inter font-semibold text-[#111827] text-sm group-hover:text-[#7E22CE] transition-colors">
                 {category.name}
               </h3>

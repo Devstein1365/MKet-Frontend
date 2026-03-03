@@ -83,7 +83,9 @@ const SearchBar = ({
                         }
                         className="w-full px-4 py-3 hover:bg-purple-50 transition-colors text-left flex items-center gap-3"
                       >
-                        <span className="text-2xl">{category.icon}</span>
+                        <span className="text-2xl">
+                          {category.icon && <category.icon />}
+                        </span>
                         <div>
                           <p className="font-inter font-medium text-gray-900">
                             {category.name}

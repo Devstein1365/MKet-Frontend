@@ -205,8 +205,9 @@ const Hero = () => {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="inline-block mb-4 px-4 py-2 bg-[#7E22CE]/10 rounded-full"
             >
-              <span className="text-[#7E22CE] font-semibold text-sm font-inter">
-                🎓 Built for Students, By Students
+              <span className="text-[#7E22CE] font-semibold text-sm font-inter flex items-center gap-2">
+                <FaGraduationCap className="text-lg" />
+                Built for Students, By Students
               </span>
             </motion.div>
 

@@ -12,7 +12,7 @@ const Categories = () => {
   const filteredCategories = categories.filter(
     (category) =>
       category.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      category.description.toLowerCase().includes(searchQuery.toLowerCase())
+      category.description.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -72,7 +72,7 @@ const Categories = () => {
                         className="w-20 h-20 rounded-full flex items-center justify-center mb-4 text-4xl group-hover:scale-110 transition-transform duration-300"
                         style={{ backgroundColor: `${category.color}15` }}
                       >
-                        {category.icon}
+                        {category.icon && <category.icon />}
                       </div>
 
                       {/* Category Name */}

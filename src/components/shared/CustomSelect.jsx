@@ -108,7 +108,15 @@ const CustomSelect = ({
                     }`}
                   >
                     <span className="flex items-center gap-2">
-                      {option.icon && <span>{option.icon}</span>}
+                      {option.icon && (
+                        <span className="text-lg">
+                          {typeof option.icon === "function" ? (
+                            <option.icon />
+                          ) : (
+                            option.icon
+                          )}
+                        </span>
+                      )}
                       {option.label}
                     </span>
                     {option.value === value && (

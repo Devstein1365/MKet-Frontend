@@ -6,6 +6,7 @@ import {
   FaArrowLeft,
   FaSearch,
   FaExclamationTriangle,
+  FaCompass,
 } from "react-icons/fa";
 import Button from "../components/shared/Button";
 import Logo from "../components/ui/Logo";
@@ -79,8 +80,9 @@ const Error = () => {
             <p className="text-lg text-gray-600 font-instrument mb-2">
               The page you're looking for doesn't exist or has been moved.
             </p>
-            <p className="text-gray-500 font-instrument mb-8">
-              Don't worry, even the best explorers get lost sometimes! 🧭
+            <p className="text-gray-500 font-instrument mb-8 flex items-center justify-center gap-2">
+              Don't worry, even the best explorers get lost sometimes!{" "}
+              <FaCompass className="inline" />
             </p>
           </motion.div>
 

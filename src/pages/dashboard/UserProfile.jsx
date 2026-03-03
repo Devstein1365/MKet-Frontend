@@ -145,7 +145,7 @@ const UserProfile = () => {
               }));
             }
           } catch (err) {
-            console.error('Error loading reviews:', err);
+            console.error("Error loading reviews:", err);
             setReviews([]);
           }
         } else {

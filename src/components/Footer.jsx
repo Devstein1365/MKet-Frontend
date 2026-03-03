@@ -6,6 +6,7 @@ import {
   FaInstagram,
   FaLinkedin,
   FaEnvelope,
+  FaHeart,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 
@@ -170,8 +171,8 @@ const Footer = () => {
         <div className="pt-8 border-t border-gray-800">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-gray-400 text-sm font-instrument">
-              © {currentYear} MKET. All rights reserved. Built with ❤️ for
-              students.
+              © {currentYear} MKET. All rights reserved. Built with{" "}
+              <FaHeart className="inline text-red-500" /> for students.
             </p>
             <div className="flex items-center gap-6 text-sm">
               <span className="text-gray-500 font-instrument">

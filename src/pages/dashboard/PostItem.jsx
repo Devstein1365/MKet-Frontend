@@ -17,6 +17,7 @@ import {
   FaPaperPlane,
   FaBan,
   FaPlus,
+  FaLightbulb,
 } from "react-icons/fa";
 import Button from "../../components/shared/Button";
 import Input from "../../components/shared/Input";
@@ -673,8 +674,9 @@ const PostItem = () => {
             Fill in the details below to list your item for sale
           </p>
           {currentDraftId && (
-            <p className="text-xs text-[#7E22CE] font-instrument mt-1">
-              📝 Editing draft - changes auto-save
+            <p className="text-xs text-[#7E22CE] font-instrument mt-1 flex items-center gap-1">
+              <FaFileAlt className="text-xs" />
+              Editing draft - changes auto-save
             </p>
           )}
         </div>
@@ -929,8 +931,9 @@ const PostItem = () => {
             {(!formData.title.trim() ||
               !formData.category ||
               !formData.price) && (
-              <p className="text-[#6B7280] text-xs mt-1 font-instrument">
-                💡 Fill in Title, Category, and Price first to use AI generation
+              <p className="text-[#6B7280] text-xs mt-1 font-instrument flex items-center gap-1">
+                <FaLightbulb className="text-yellow-500" />
+                Fill in Title, Category, and Price first to use AI generation
               </p>
             )}
             {errors.description && (
