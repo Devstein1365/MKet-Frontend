@@ -31,7 +31,7 @@ class AuthService {
         localStorage.setItem(AUTH_TOKEN_KEY, response.data.token);
         localStorage.setItem(
           CURRENT_USER_KEY,
-          JSON.stringify(response.data.user)
+          JSON.stringify(response.data.user),
         );
 
         return {
@@ -59,14 +59,17 @@ class AuthService {
   // Login user
   async login(email, password) {
     try {
-      const response = await api.post("/auth/login", { email, password });
+      const response = await api.post("/auth/login", {
+        email: email?.trim().toLowerCase(),
+        password,
+      });
 
       if (response.data.success) {
         // Store token and user data
         localStorage.setItem(AUTH_TOKEN_KEY, response.data.token);
         localStorage.setItem(
           CURRENT_USER_KEY,
-          JSON.stringify(response.data.user)
+          JSON.stringify(response.data.user),
         );
 
         return {
@@ -104,7 +107,7 @@ class AuthService {
         // Update stored user data
         localStorage.setItem(
           CURRENT_USER_KEY,
-          JSON.stringify(response.data.user)
+          JSON.stringify(response.data.user),
         );
         return {
           success: true,
@@ -134,7 +137,7 @@ class AuthService {
         // Update stored user data
         localStorage.setItem(
           CURRENT_USER_KEY,
-          JSON.stringify(response.data.user)
+          JSON.stringify(response.data.user),
         );
 
         return {

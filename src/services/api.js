@@ -23,7 +23,7 @@ api.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response interceptor - Handle errors globally
@@ -33,14 +33,26 @@ api.interceptors.response.use(
   },
   (error) => {
     // Handle 401 Unauthorized - token expired or invalid
+    // BUT: Don't redirect on login/signup endpoints (those are expected to return 401 for bad credentials)
     if (error.response?.status === 401) {
-      // Clear token and redirect to login
-      localStorage.removeItem("mket_auth_token");
-      localStorage.removeItem("mket_current_user");
-      window.location.href = "/auth";
+      const isAuthEndpoint =
+        error.config?.url?.includes("/auth/login") ||
+        error.config?.url?.includes("/auth/signup");
+
+      // Only clear token and redirect if it's NOT a login/signup attempt
+      if (!isAuthEndpoint) {
+        // Clear token and redirect to login
+        localStorage.removeItem("mket_auth_token");
+        localStorage.removeItem("mket_current_user");
+
+        // Only redirect if not already on auth page
+        if (!window.location.pathname.includes("/auth")) {
+          window.location.href = "/auth";
+        }
+      }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;
