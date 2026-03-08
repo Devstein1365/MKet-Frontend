@@ -202,6 +202,8 @@ const Messages = () => {
         image: imagePreview,
       };
 
+      let targetConversationId = selectedConversation.id;
+
       // If this is a temporary conversation (first message), save it first
       if (selectedConversation.isTemporary) {
         const backendConversation = await chatService.createOrGetConversation(
@@ -214,6 +216,8 @@ const Messages = () => {
         if (!realConversationId) {
           throw new Error("Failed to create conversation");
         }
+        
+        targetConversationId = realConversationId;
 
         const conversationToSave = {
           ...selectedConversation,
@@ -234,7 +238,7 @@ const Messages = () => {
       }
 
       const newMessage = await chatService.sendMessage(
-        selectedConversation.id,
+        targetConversationId,
         messageData,
       );
 
@@ -249,8 +253,8 @@ const Messages = () => {
       // Update the selectedConversation with the new lastMessage
       const updatedSelectedConv = updatedConversations.find(
         (conv) =>
-          conv.id === selectedConversation.id ||
-          String(conv.id) === String(selectedConversation.id),
+          conv.id === targetConversationId ||
+          String(conv.id) === String(targetConversationId),
       );
       if (updatedSelectedConv) {
         setSelectedConversation(updatedSelectedConv);
