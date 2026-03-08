@@ -66,7 +66,7 @@ const Messages = () => {
 
         // Filter out blocked users
         const filteredData = data.filter(
-          (conv) => !blockedUsers.includes(conv.participant?.id)
+          (conv) => !blockedUsers.includes(conv.participant?.id),
         );
 
         setConversations(filteredData);
@@ -85,7 +85,7 @@ const Messages = () => {
 
           // Find existing conversation with this seller (mock data uses `participant`)
           let conversation = data.find(
-            (conv) => conv.participant?.id === sellerId
+            (conv) => conv.participant?.id === sellerId,
           );
 
           // If no existing conversation, create a temporary one
@@ -183,8 +183,8 @@ const Messages = () => {
     // Update unread count
     setConversations((prev) =>
       prev.map((conv) =>
-        conv.id === conversation.id ? { ...conv, unreadCount: 0 } : conv
-      )
+        conv.id === conversation.id ? { ...conv, unreadCount: 0 } : conv,
+      ),
     );
   };
 
@@ -204,8 +204,20 @@ const Messages = () => {
 
       // If this is a temporary conversation (first message), save it first
       if (selectedConversation.isTemporary) {
+        const backendConversation = await chatService.createOrGetConversation(
+          selectedConversation.participant.id,
+          selectedConversation.product?.id || undefined,
+        );
+
+        const realConversationId = backendConversation?.conversation?.id;
+
+        if (!realConversationId) {
+          throw new Error("Failed to create conversation");
+        }
+
         const conversationToSave = {
           ...selectedConversation,
+          id: realConversationId,
           isTemporary: false, // Remove temporary flag
         };
 
@@ -214,7 +226,7 @@ const Messages = () => {
           JSON.parse(localStorage.getItem("mket_conversations")) || [];
         localStorage.setItem(
           "mket_conversations",
-          JSON.stringify([conversationToSave, ...storedConversations])
+          JSON.stringify([conversationToSave, ...storedConversations]),
         );
 
         // Update selectedConversation to remove temporary flag
@@ -223,7 +235,7 @@ const Messages = () => {
 
       const newMessage = await chatService.sendMessage(
         selectedConversation.id,
-        messageData
+        messageData,
       );
 
       setMessages([...messages, newMessage]);
@@ -238,7 +250,7 @@ const Messages = () => {
       const updatedSelectedConv = updatedConversations.find(
         (conv) =>
           conv.id === selectedConversation.id ||
-          String(conv.id) === String(selectedConversation.id)
+          String(conv.id) === String(selectedConversation.id),
       );
       if (updatedSelectedConv) {
         setSelectedConversation(updatedSelectedConv);
@@ -268,7 +280,7 @@ const Messages = () => {
     // Auto-focus the input after selecting quick reply
     setTimeout(() => {
       const textarea = document.querySelector(
-        'textarea[placeholder="Type a message..."]'
+        'textarea[placeholder="Type a message..."]',
       );
       if (textarea) textarea.focus();
     }, 100);
@@ -298,19 +310,19 @@ const Messages = () => {
         setBlockedUsers(updatedBlockedUsers);
         localStorage.setItem(
           "mket_blocked_users",
-          JSON.stringify(updatedBlockedUsers)
+          JSON.stringify(updatedBlockedUsers),
         );
 
         // Remove conversation from list
         setConversations((prev) =>
-          prev.filter((conv) => conv.participant.id !== userId)
+          prev.filter((conv) => conv.participant.id !== userId),
         );
         setSelectedConversation(null);
         setShowConfirmModal(false);
         showModal(
           "User Blocked",
           `${selectedConversation?.participant?.name} has been blocked successfully.`,
-          "success"
+          "success",
         );
       },
     });
@@ -323,7 +335,7 @@ const Messages = () => {
     showModal(
       "Report User",
       "Report functionality will be implemented soon.",
-      "info"
+      "info",
     );
     setShowOptionsMenu(false);
   };
@@ -338,21 +350,21 @@ const Messages = () => {
 
         // Remove from localStorage
         const storedConversations = JSON.parse(
-          localStorage.getItem("mket_conversations") || "[]"
+          localStorage.getItem("mket_conversations") || "[]",
         );
         const updatedConversations = storedConversations.filter(
           (conv) =>
             conv.id !== conversationId &&
-            String(conv.id) !== String(conversationId)
+            String(conv.id) !== String(conversationId),
         );
         localStorage.setItem(
           "mket_conversations",
-          JSON.stringify(updatedConversations)
+          JSON.stringify(updatedConversations),
         );
 
         // Remove messages from localStorage
         const storedMessages = JSON.parse(
-          localStorage.getItem("mket_messages") || "{}"
+          localStorage.getItem("mket_messages") || "{}",
         );
         delete storedMessages[conversationId];
         localStorage.setItem("mket_messages", JSON.stringify(storedMessages));
@@ -362,15 +374,15 @@ const Messages = () => {
           prev.filter(
             (conv) =>
               conv.id !== conversationId &&
-              String(conv.id) !== String(conversationId)
-          )
+              String(conv.id) !== String(conversationId),
+          ),
         );
         setSelectedConversation(null);
         setShowConfirmModal(false);
         showModal(
           "Conversation Deleted",
           "The conversation has been deleted successfully.",
-          "success"
+          "success",
         );
       },
     });
@@ -588,7 +600,7 @@ const Messages = () => {
                   {selectedConversation.participant.isOnline
                     ? "Online"
                     : `Last seen ${formatTime(
-                        selectedConversation.participant.lastSeen
+                        selectedConversation.participant.lastSeen,
                       )}`}
                 </p>
               </div>
@@ -655,7 +667,7 @@ const Messages = () => {
                     <p className="text-sm font-inter font-bold text-[#7E22CE]">
                       ₦
                       {parseInt(
-                        selectedConversation.product.price
+                        selectedConversation.product.price,
                       ).toLocaleString()}
                     </p>
                   </div>
@@ -773,7 +785,7 @@ const Messages = () => {
                   <button
                     onClick={() =>
                       handleQuickReply(
-                        "I'm interested! Can I get more details?"
+                        "I'm interested! Can I get more details?",
                       )
                     }
                     className="px-4 py-2 bg-white border-2 border-[#7E22CE] text-[#7E22CE] rounded-full font-instrument text-sm hover:bg-[#7E22CE] hover:text-white transition-all duration-200 shadow-sm"

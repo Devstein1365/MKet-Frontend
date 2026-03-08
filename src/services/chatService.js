@@ -13,6 +13,116 @@ class ChatService {
     this.eventListeners = new Map();
   }
 
+  getCurrentUserId() {
+    try {
+      const storedUser = JSON.parse(
+        localStorage.getItem("mket_current_user") || "null",
+      );
+      return storedUser?.id || null;
+    } catch {
+      return null;
+    }
+  }
+
+  getProductImage(product) {
+    if (!product) return null;
+
+    if (product.image) return product.image;
+
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      const firstImage = product.images[0];
+
+      if (typeof firstImage === "string") return firstImage;
+      if (firstImage?.url) return firstImage.url;
+    }
+
+    return null;
+  }
+
+  normalizeConversation(conversation) {
+    const currentUserId = this.getCurrentUserId();
+
+    const participant = conversation.participant || {
+      id:
+        conversation.user1?.id === currentUserId
+          ? conversation.user2?.id
+          : conversation.user1?.id,
+      fullName:
+        conversation.user1?.id === currentUserId
+          ? conversation.user2?.fullName
+          : conversation.user1?.fullName,
+      avatarUrl:
+        conversation.user1?.id === currentUserId
+          ? conversation.user2?.avatarUrl
+          : conversation.user1?.avatarUrl,
+      avatarColor:
+        conversation.user1?.id === currentUserId
+          ? conversation.user2?.avatarColor
+          : conversation.user1?.avatarColor,
+      isVerified:
+        conversation.user1?.id === currentUserId
+          ? conversation.user2?.isVerified
+          : conversation.user1?.isVerified,
+    };
+
+    const normalizedLastMessage = conversation.lastMessage
+      ? {
+          ...conversation.lastMessage,
+          timestamp:
+            conversation.lastMessage.timestamp ||
+            conversation.lastMessage.createdAt ||
+            new Date().toISOString(),
+          senderId:
+            conversation.lastMessage.senderId === currentUserId
+              ? 0
+              : conversation.lastMessage.senderId,
+        }
+      : null;
+
+    return {
+      id: conversation.id,
+      participant: {
+        id: participant?.id,
+        name: participant?.name || participant?.fullName || "Unknown User",
+        avatar: participant?.avatar || participant?.avatarUrl || null,
+        verified: Boolean(participant?.verified ?? participant?.isVerified),
+        isOnline: this.isUserOnline(participant?.id),
+      },
+      product: conversation.product
+        ? {
+            id: conversation.product.id,
+            title: conversation.product.title,
+            image: this.getProductImage(conversation.product),
+            price: conversation.product.price,
+          }
+        : {
+            id: null,
+            title: "",
+            image: null,
+            price: null,
+          },
+      lastMessage: normalizedLastMessage,
+      unreadCount: conversation.unreadCount || 0,
+      updatedAt: conversation.updatedAt,
+    };
+  }
+
+  normalizeMessage(message) {
+    const currentUserId = this.getCurrentUserId();
+
+    return {
+      id: message.id,
+      conversationId: message.conversationId,
+      senderId: message.senderId === currentUserId ? 0 : message.senderId,
+      text: message.text || "",
+      image: message.image || null,
+      isRead: Boolean(message.isRead),
+      timestamp:
+        message.timestamp || message.createdAt || new Date().toISOString(),
+      createdAt: message.createdAt || message.timestamp,
+    };
+  }
+
   // ========================================
   // SOCKET.IO CONNECTION
   // ========================================
@@ -178,11 +288,41 @@ class ChatService {
   async getConversations() {
     try {
       const response = await api.get("/conversations");
-      return response.data;
+      const conversations = response.data?.conversations || [];
+      return conversations.map((conversation) =>
+        this.normalizeConversation(conversation),
+      );
     } catch (error) {
       console.error("Error fetching conversations:", error);
       throw error;
     }
+  }
+
+  async getAllConversations() {
+    return this.getConversations();
+  }
+
+  async searchConversations(query = "") {
+    const normalizedQuery = query.trim().toLowerCase();
+    const conversations = await this.getAllConversations();
+
+    if (!normalizedQuery) {
+      return conversations;
+    }
+
+    return conversations.filter((conversation) => {
+      const participantName =
+        conversation.participant?.name?.toLowerCase() || "";
+      const productTitle = conversation.product?.title?.toLowerCase() || "";
+      const lastMessageText =
+        conversation.lastMessage?.text?.toLowerCase() || "";
+
+      return (
+        participantName.includes(normalizedQuery) ||
+        productTitle.includes(normalizedQuery) ||
+        lastMessageText.includes(normalizedQuery)
+      );
+    });
   }
 
   /**
@@ -244,13 +384,18 @@ class ChatService {
    */
   async getMessages(conversationId, page = 1, limit = 50) {
     try {
+      if (String(conversationId).startsWith("new-")) {
+        return [];
+      }
+
       const response = await api.get(
         `/conversations/${conversationId}/messages`,
         {
           params: { page, limit },
         },
       );
-      return response.data;
+      const messages = response.data?.messages || [];
+      return messages.map((message) => this.normalizeMessage(message));
     } catch (error) {
       console.error("Error fetching messages:", error);
       throw error;
@@ -261,32 +406,55 @@ class ChatService {
    * Send a message (Socket.io for real-time)
    */
   sendMessage(conversationId, text) {
+    const payload = typeof text === "string" ? { text } : text || {};
+    const messageText =
+      payload.text?.trim() || (payload.image ? "[Image]" : "");
+
+    if (!messageText) {
+      return Promise.reject(new Error("Message cannot be empty"));
+    }
+
     if (!this.isSocketConnected()) {
       console.warn("Socket not connected. Falling back to REST API.");
-      return this.sendMessageREST(conversationId, text);
+      return this.sendMessageREST(conversationId, {
+        text: messageText,
+        image: payload.image || null,
+      });
     }
 
     return new Promise((resolve, reject) => {
-      this.socket.emit("send_message", { conversationId, text }, (response) => {
-        if (response.success) {
-          resolve(response.data);
-        } else {
-          reject(new Error(response.message || "Failed to send message"));
-        }
-      });
+      this.socket.emit(
+        "send_message",
+        { conversationId, text: messageText },
+        (response) => {
+          if (response.success) {
+            resolve(
+              this.normalizeMessage({
+                ...response.data,
+                image: payload.image || null,
+              }),
+            );
+          } else {
+            reject(new Error(response.message || "Failed to send message"));
+          }
+        },
+      );
     });
   }
 
   /**
    * Send a message via REST API (fallback)
    */
-  async sendMessageREST(conversationId, text) {
+  async sendMessageREST(conversationId, payload) {
     try {
       const response = await api.post("/messages", {
         conversationId,
-        text,
+        text: payload.text,
       });
-      return response.data;
+      return this.normalizeMessage({
+        ...(response.data?.message || {}),
+        image: payload.image || null,
+      });
     } catch (error) {
       console.error("Error sending message:", error);
       throw error;
@@ -323,6 +491,10 @@ class ChatService {
    */
   async markAllMessagesAsRead(conversationId) {
     try {
+      if (String(conversationId).startsWith("new-")) {
+        return { success: true };
+      }
+
       const response = await api.put(
         `/conversations/${conversationId}/mark-all-read`,
       );
@@ -331,6 +503,10 @@ class ChatService {
       console.error("Error marking all messages as read:", error);
       throw error;
     }
+  }
+
+  async markAsRead(conversationId) {
+    return this.markAllMessagesAsRead(conversationId);
   }
 
   // ========================================

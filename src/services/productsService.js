@@ -183,7 +183,7 @@ class ProductsService {
   // Mark product as sold
   async markAsSold(productId) {
     try {
-      const response = await api.put(`/products/${productId}/sold`);
+      const response = await api.put(`/products/${productId}/mark-sold`);
 
       return {
         success: true,
@@ -223,11 +223,11 @@ class ProductsService {
   // Get my drafts - Authenticated user only
   async getMyDrafts() {
     try {
-      const response = await api.get("/products/my/drafts");
+      const response = await api.get("/products/my-products?status=draft");
 
       return {
         success: true,
-        drafts: response.data.drafts,
+        drafts: response.data.products || [],
         count: response.data.count,
       };
     } catch (error) {
@@ -243,7 +243,9 @@ class ProductsService {
   // Publish draft
   async publishDraft(productId) {
     try {
-      const response = await api.put(`/products/${productId}/publish`);
+      const response = await api.put(`/products/${productId}`, {
+        status: "AVAILABLE",
+      });
 
       return {
         success: true,
@@ -263,7 +265,9 @@ class ProductsService {
   async getProductsByCategory(category, page = 1, limit = 20, sort = "newest") {
     try {
       const response = await api.get(
-        `/products/category/${category}?page=${page}&limit=${limit}&sort=${sort}`,
+        `/products?category=${encodeURIComponent(
+          category,
+        )}&page=${page}&limit=${limit}&sort=${sort}`,
       );
 
       return {
@@ -294,7 +298,7 @@ class ProductsService {
       }
 
       const response = await api.get(
-        `/products/search?q=${encodeURIComponent(
+        `/products?search=${encodeURIComponent(
           searchTerm,
         )}&page=${page}&limit=${limit}`,
       );
@@ -302,7 +306,7 @@ class ProductsService {
       return {
         success: true,
         products: response.data.products,
-        query: response.data.query,
+        query: searchTerm,
         pagination: response.data.pagination,
       };
     } catch (error) {
