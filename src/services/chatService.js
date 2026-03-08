@@ -330,6 +330,10 @@ class ChatService {
    */
   async createOrGetConversation(user2Id, productId) {
     try {
+      console.log("createOrGetConversation API call mapping:", {
+        user2Id,
+        productId,
+      });
       const response = await api.post("/conversations", {
         user2Id,
         productId,
