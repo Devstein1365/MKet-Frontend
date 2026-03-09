@@ -43,7 +43,7 @@ const CategoryProducts = () => {
     try {
       const data = await productsService.getProductsByCategory(categoryId);
       // data might be an array or an object { products: [], pagination: {} }
-      const productsArray = Array.isArray(data) ? data : (data?.products || []);
+      const productsArray = Array.isArray(data) ? data : data?.products || [];
       setProducts(productsArray);
     } catch (error) {
       console.error("Error loading products:", error);
@@ -132,7 +132,7 @@ const CategoryProducts = () => {
           <div className="flex items-center gap-4 mb-4">
             <div
               className="w-16 h-16 rounded-full flex items-center justify-center text-3xl"
-              style={{ backgroundColor: "white" }}
+              style={{ backgroundColor: "white", color: category.color || "#000" }}
             >
               {category.icon && <category.icon />}
             </div>
