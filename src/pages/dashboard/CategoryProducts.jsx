@@ -42,12 +42,12 @@ const CategoryProducts = () => {
     setLoading(true);
     try {
       const data = await productsService.getProductsByCategory(categoryId);
-      setProducts(data);
+      // data might be an array or an object { products: [], pagination: {} }
+      const productsArray = Array.isArray(data) ? data : (data?.products || []);
+      setProducts(productsArray);
     } catch (error) {
       console.error("Error loading products:", error);
-    } finally {
-      setLoading(false);
-    }
+      setProducts([]); // Fallback to empty array on error
   };
 
   // Apply filters and sorting
