@@ -132,7 +132,10 @@ const CategoryProducts = () => {
           <div className="flex items-center gap-4 mb-4">
             <div
               className="w-16 h-16 rounded-full flex items-center justify-center text-3xl"
-              style={{ backgroundColor: "white", color: category.color || "#000" }}
+              style={{
+                backgroundColor: "white",
+                color: category.color || "#000",
+              }}
             >
               {category.icon && <category.icon />}
             </div>
