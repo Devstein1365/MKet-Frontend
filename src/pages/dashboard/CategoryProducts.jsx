@@ -48,6 +48,9 @@ const CategoryProducts = () => {
     } catch (error) {
       console.error("Error loading products:", error);
       setProducts([]); // Fallback to empty array on error
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Apply filters and sorting
