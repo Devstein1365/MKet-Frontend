@@ -12,6 +12,7 @@ import ListingsTab from "../../components/profile/ListingsTab";
 import PerformanceStats from "../../components/profile/PerformanceStats";
 import ImageCropper from "../../components/shared/ImageCropper";
 import productsService from "../../services/productsService";
+import cloudinaryService from "../../services/cloudinaryService";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -40,6 +41,7 @@ const Profile = () => {
 
   const [imageToCrop, setImageToCrop] = useState(null);
   const [showCropper, setShowCropper] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // Modal state
   const [modal, setModal] = useState({
@@ -133,12 +135,32 @@ const Profile = () => {
 
   const handleSaveProfile = async () => {
     try {
+      setUploadingAvatar(true);
+      let avatarUrl = profileData.avatar;
+
+      // If avatar is a base64 string (new upload), upload to Cloudinary first
+      if (avatarUrl && avatarUrl.startsWith('data:image')) {
+        // Convert base64 to blob
+        const response = await fetch(avatarUrl);
+        const blob = await response.blob();
+        const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+
+        // Upload to Cloudinary
+        const uploadResult = await cloudinaryService.uploadImage(file);
+        
+        if (uploadResult.success) {
+          avatarUrl = uploadResult.url;
+        } else {
+          throw new Error(uploadResult.error || 'Failed to upload avatar');
+        }
+      }
+
       // Prepare data for backend (only send fields that backend accepts)
       const updateData = {
         bio: profileData.bio,
         location: profileData.location,
         phone: profileData.phone,
-        avatarUrl: profileData.avatar,
+        avatarUrl: avatarUrl,
       };
 
       const result = await updateUser(updateData);
@@ -156,9 +178,11 @@ const Profile = () => {
       console.error("Profile update error:", error);
       showModal(
         "Error",
-        "Failed to update profile. Please try again.",
+        error.message || "Failed to update profile. Please try again.",
         "error",
       );
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
