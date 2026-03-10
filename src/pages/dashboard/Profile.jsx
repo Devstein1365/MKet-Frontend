@@ -139,19 +139,19 @@ const Profile = () => {
       let avatarUrl = profileData.avatar;
 
       // If avatar is a base64 string (new upload), upload to Cloudinary first
-      if (avatarUrl && avatarUrl.startsWith('data:image')) {
+      if (avatarUrl && avatarUrl.startsWith("data:image")) {
         // Convert base64 to blob
         const response = await fetch(avatarUrl);
         const blob = await response.blob();
-        const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+        const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
 
         // Upload to Cloudinary
         const uploadResult = await cloudinaryService.uploadImage(file);
-        
+
         if (uploadResult.success) {
           avatarUrl = uploadResult.url;
         } else {
-          throw new Error(uploadResult.error || 'Failed to upload avatar');
+          throw new Error(uploadResult.error || "Failed to upload avatar");
         }
       }
 

@@ -71,7 +71,12 @@ const Sidebar = () => {
       {/* User profile section */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center gap-3">
-          <Avatar src={user?.avatarUrl} alt={user?.fullName} size="md" status="online" />
+          <Avatar
+            src={user?.avatarUrl}
+            alt={user?.fullName}
+            size="md"
+            status="online"
+          />
           <AnimatePresence mode="wait">
             {!isCollapsed && (
               <motion.div
