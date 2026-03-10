@@ -71,7 +71,7 @@ const Sidebar = () => {
       {/* User profile section */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center gap-3">
-          <Avatar src={user.avatar} alt={user.name} size="md" status="online" />
+          <Avatar src={user?.avatarUrl} alt={user?.fullName} size="md" status="online" />
           <AnimatePresence mode="wait">
             {!isCollapsed && (
               <motion.div
@@ -82,10 +82,10 @@ const Sidebar = () => {
                 className="flex-1 min-w-0"
               >
                 <p className="font-inter font-semibold text-[#111827] text-sm truncate">
-                  {user.name}
+                  {user?.fullName}
                 </p>
                 <p className="font-instrument text-xs text-[#4B5563] truncate">
-                  {user.email}
+                  {user?.email}
                 </p>
               </motion.div>
             )}
