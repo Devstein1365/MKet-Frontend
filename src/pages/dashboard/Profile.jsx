@@ -76,7 +76,7 @@ const Profile = () => {
         setStats({
           totalListings: result.products.length,
           totalViews: totalViews,
-          totalSold: 2,
+          totalSold: result.products.filter((p) => p.status === "sold").length,
           activeListings: result.products.filter(
             (p) => p.status === "available",
           ).length,
@@ -243,7 +243,9 @@ const Profile = () => {
                       <tab.icon className="text-base sm:text-lg" />
                       <span className="hidden sm:inline">{tab.label}</span>
                       <span className="sm:hidden text-[10px]">
-                        {tab.id === "listings" ? "Listings" : tab.label.split(" ")[0]}
+                        {tab.id === "listings"
+                          ? "Listings"
+                          : tab.label.split(" ")[0]}
                       </span>
                       {tab.count !== null && (
                         <span className="px-1.5 sm:px-2 py-0.5 bg-gray-100 rounded-full text-[10px] sm:text-xs">
