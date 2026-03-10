@@ -12,6 +12,7 @@ import {
   FaEllipsisV,
 } from "react-icons/fa";
 import chatService from "../../services/chatService";
+import reportService from "../../services/reportService";
 import { useUnreadMessages } from "../../context/UnreadMessagesContext";
 import Button from "../../components/shared/Button";
 import Input from "../../components/shared/Input";
@@ -39,6 +40,10 @@ const Messages = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportDescription, setReportDescription] = useState("");
+  const [submittingReport, setSubmittingReport] = useState(false);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const optionsMenuRef = useRef(null);
@@ -420,13 +425,51 @@ const Messages = () => {
   };
 
   const handleReportUser = () => {
-    // TODO: Implement report user functionality
-    showModal(
-      "Report User",
-      "Report functionality will be implemented soon.",
-      "info",
-    );
     setShowOptionsMenu(false);
+    setShowReportModal(true);
+    setReportReason("");
+    setReportDescription("");
+  };
+
+  const submitReport = async () => {
+    if (!reportReason) {
+      showModal("Error", "Please select a reason for reporting", "error");
+      return;
+    }
+
+    setSubmittingReport(true);
+
+    try {
+      const result = await reportService.reportUser(
+        selectedConversation.participant.id,
+        reportReason,
+        reportDescription,
+      );
+
+      if (result.success) {
+        setShowReportModal(false);
+        showModal(
+          "Report Submitted",
+          "Thank you for your report. We will review it shortly.",
+          "success",
+        );
+      } else {
+        showModal(
+          "Error",
+          result.message || "Failed to submit report",
+          "error",
+        );
+      }
+    } catch (error) {
+      console.error("Report submission error:", error);
+      showModal(
+        "Error",
+        "An error occurred while submitting the report",
+        "error",
+      );
+    } finally {
+      setSubmittingReport(false);
+    }
   };
 
   const handleDeleteConversation = () => {
@@ -434,45 +477,40 @@ const Messages = () => {
       type: "delete",
       title: "Delete Conversation",
       message: `Are you sure you want to delete this conversation with ${selectedConversation?.participant?.name}? This action cannot be undone.`,
-      onConfirm: () => {
+      onConfirm: async () => {
         const conversationId = selectedConversation.id;
 
-        // Remove from localStorage
-        const storedConversations = JSON.parse(
-          localStorage.getItem("mket_conversations") || "[]",
-        );
-        const updatedConversations = storedConversations.filter(
-          (conv) =>
-            conv.id !== conversationId &&
-            String(conv.id) !== String(conversationId),
-        );
-        localStorage.setItem(
-          "mket_conversations",
-          JSON.stringify(updatedConversations),
-        );
+        try {
+          // Call API to delete conversation
+          const result = await chatService.deleteConversation(conversationId);
 
-        // Remove messages from localStorage
-        const storedMessages = JSON.parse(
-          localStorage.getItem("mket_messages") || "{}",
-        );
-        delete storedMessages[conversationId];
-        localStorage.setItem("mket_messages", JSON.stringify(storedMessages));
-
-        // Remove from state
-        setConversations((prev) =>
-          prev.filter(
-            (conv) =>
-              conv.id !== conversationId &&
-              String(conv.id) !== String(conversationId),
-          ),
-        );
-        setSelectedConversation(null);
-        setShowConfirmModal(false);
-        showModal(
-          "Conversation Deleted",
-          "The conversation has been deleted successfully.",
-          "success",
-        );
+          if (result.success) {
+            // Remove from state
+            setConversations((prev) =>
+              prev.filter((conv) => conv.id !== conversationId),
+            );
+            setSelectedConversation(null);
+            setShowConfirmModal(false);
+            showModal(
+              "Conversation Deleted",
+              "The conversation has been deleted successfully.",
+              "success",
+            );
+          } else {
+            showModal(
+              "Error",
+              result.message || "Failed to delete conversation",
+              "error",
+            );
+          }
+        } catch (error) {
+          console.error("Delete conversation error:", error);
+          showModal(
+            "Error",
+            "An error occurred while deleting the conversation.",
+            "error",
+          );
+        }
       },
     });
     setShowConfirmModal(true);
@@ -1088,6 +1126,81 @@ const Messages = () => {
                 className="flex-1 bg-red-600 hover:bg-red-700"
               >
                 {confirmAction.type === "block" ? "Block" : "Delete"}
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Report User Modal */}
+      {showReportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-xl"
+          >
+            <h3 className="text-xl font-inter font-bold text-gray-900 mb-3">
+              Report User
+            </h3>
+            <p className="text-gray-600 font-instrument mb-4">
+              Report {selectedConversation?.participant?.name} for inappropriate
+              behavior
+            </p>
+
+            {/* Reason Selection */}
+            <div className="mb-4">
+              <label className="block text-sm font-inter font-semibold text-gray-700 mb-2">
+                Reason *
+              </label>
+              <select
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-instrument focus:outline-none focus:ring-2 focus:ring-[#7E22CE] focus:border-transparent"
+              >
+                <option value="">Select a reason</option>
+                <option value="SPAM">Spam or misleading</option>
+                <option value="HARASSMENT">Harassment or bullying</option>
+                <option value="INAPPROPRIATE_CONTENT">
+                  Inappropriate content
+                </option>
+                <option value="SCAM">Scam or fraud</option>
+                <option value="FAKE_ACCOUNT">Fake account</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+
+            {/* Description */}
+            <div className="mb-6">
+              <label className="block text-sm font-inter font-semibold text-gray-700 mb-2">
+                Additional Details (Optional)
+              </label>
+              <textarea
+                value={reportDescription}
+                onChange={(e) => setReportDescription(e.target.value)}
+                placeholder="Provide more information about this report..."
+                rows={4}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg font-instrument focus:outline-none focus:ring-2 focus:ring-[#7E22CE] focus:border-transparent resize-none"
+              ></textarea>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowReportModal(false)}
+                className="flex-1"
+                disabled={submittingReport}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={submitReport}
+                className="flex-1"
+                disabled={submittingReport || !reportReason}
+              >
+                {submittingReport ? "Submitting..." : "Submit Report"}
               </Button>
             </div>
           </motion.div>

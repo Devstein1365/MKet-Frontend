@@ -535,6 +535,30 @@ class ChatService {
 
     this.socket.emit("stop_typing", { conversationId });
   }
+
+  // ========================================
+  // CONVERSATION MANAGEMENT
+  // ========================================
+
+  /**
+   * Delete conversation
+   */
+  async deleteConversation(conversationId) {
+    try {
+      const response = await api.delete(`/conversations/${conversationId}`);
+      return {
+        success: true,
+        message: response.data.message || "Conversation deleted successfully",
+      };
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
+      return {
+        success: false,
+        message:
+          error.response?.data?.message || "Failed to delete conversation",
+      };
+    }
+  }
 }
 
 // Create and export singleton instance
