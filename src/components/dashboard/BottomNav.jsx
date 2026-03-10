@@ -3,10 +3,12 @@ import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FaHome, FaHeart, FaPlus, FaComments, FaUser } from "react-icons/fa";
 import { useWishlist } from "../../context/WishlistContext";
+import { useUnreadMessages } from "../../context/UnreadMessagesContext";
 
 const BottomNav = () => {
   const location = useLocation();
   const { wishlistCount } = useWishlist();
+  const { unreadCount } = useUnreadMessages();
 
   const navItems = [
     {
@@ -30,6 +32,7 @@ const BottomNav = () => {
       name: "Chat",
       path: "/dashboard/chat",
       icon: FaComments,
+      badge: unreadCount,
     },
     {
       name: "Profile",

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { WishlistProvider } from "./context/WishlistContext";
+import { UnreadMessagesProvider } from "./context/UnreadMessagesContext";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Home from "./pages/Home";
@@ -23,39 +24,41 @@ const App = () => {
     <BrowserRouter>
       <AuthProvider>
         <WishlistProvider>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<Home />} />
-            <Route path="/auth" element={<Auth />} />
+          <UnreadMessagesProvider>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<Home />} />
+              <Route path="/auth" element={<Auth />} />
 
-            {/* Dashboard routes - nested and protected */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<DashboardHome />} />
-              <Route path="product/:id" element={<ProductDetails />} />
-              <Route path="wishlist" element={<Wishlist />} />
-              <Route path="post" element={<PostItem />} />
-              <Route path="chat" element={<Messages />} />
-              <Route path="profile" element={<Profile />} />
-              <Route path="profile/:userId" element={<UserProfile />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="notifications" element={<Notifications />} />
-              <Route path="categories" element={<Categories />} />
+              {/* Dashboard routes - nested and protected */}
               <Route
-                path="categories/:categoryId"
-                element={<CategoryProducts />}
-              />
-            </Route>
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <DashboardLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<DashboardHome />} />
+                <Route path="product/:id" element={<ProductDetails />} />
+                <Route path="wishlist" element={<Wishlist />} />
+                <Route path="post" element={<PostItem />} />
+                <Route path="chat" element={<Messages />} />
+                <Route path="profile" element={<Profile />} />
+                <Route path="profile/:userId" element={<UserProfile />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="notifications" element={<Notifications />} />
+                <Route path="categories" element={<Categories />} />
+                <Route
+                  path="categories/:categoryId"
+                  element={<CategoryProducts />}
+                />
+              </Route>
 
-            {/* 404 */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              {/* 404 */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </UnreadMessagesProvider>
         </WishlistProvider>
       </AuthProvider>
     </BrowserRouter>

@@ -87,6 +87,7 @@ class ChatService {
         avatar: participant?.avatar || participant?.avatarUrl || null,
         verified: Boolean(participant?.verified ?? participant?.isVerified),
         isOnline: this.isUserOnline(participant?.id),
+        lastSeen: participant?.lastSeen || participant?.lastLogin || null,
       },
       product: conversation.product
         ? {

@@ -12,6 +12,7 @@ import {
   FaEllipsisV,
 } from "react-icons/fa";
 import chatService from "../../services/chatService";
+import { useUnreadMessages } from "../../context/UnreadMessagesContext";
 import Button from "../../components/shared/Button";
 import Input from "../../components/shared/Input";
 import Avatar from "../../components/shared/Avatar";
@@ -21,6 +22,7 @@ import Modal from "../../components/shared/Modal";
 const Messages = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { decrementUnreadCount } = useUnreadMessages();
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -165,6 +167,83 @@ const Messages = () => {
     return () => clearTimeout(debounce);
   }, [searchQuery]);
 
+  // Socket.IO event listeners for real-time chat
+  useEffect(() => {
+    // Connect to socket when component mounts
+    chatService.connect();
+
+    // Listen for new messages
+    const handleMessageReceived = (message) => {
+      console.log("New message received:", message);
+
+      // If the message is for the currently selected conversation, add it to messages
+      if (
+        selectedConversation &&
+        message.conversationId === selectedConversation.id
+      ) {
+        setMessages((prevMessages) => [...prevMessages, message]);
+      }
+
+      // Update conversations list to reflect new message
+      setConversations((prevConversations) => {
+        return prevConversations.map((conv) => {
+          if (conv.id === message.conversationId) {
+            return {
+              ...conv,
+              lastMessage: message,
+              unreadCount:
+                selectedConversation?.id === message.conversationId
+                  ? 0
+                  : (conv.unreadCount || 0) + 1,
+              updatedAt: message.timestamp || new Date().toISOString(),
+            };
+          }
+          return conv;
+        });
+      });
+    };
+
+    // Listen for user status changes
+    const handleUserStatusChanged = ({ userId, isOnline }) => {
+      setConversations((prevConversations) => {
+        return prevConversations.map((conv) => {
+          if (conv.participant?.id === userId) {
+            return {
+              ...conv,
+              participant: {
+                ...conv.participant,
+                isOnline,
+              },
+            };
+          }
+          return conv;
+        });
+      });
+
+      // Update currently selected conversation if needed
+      if (selectedConversation?.participant?.id === userId) {
+        setSelectedConversation((prev) => ({
+          ...prev,
+          participant: {
+            ...prev.participant,
+            isOnline,
+          },
+        }));
+      }
+    };
+
+    // Register event listeners
+    chatService.on("message_received", handleMessageReceived);
+    chatService.on("user_status_changed", handleUserStatusChanged);
+
+    // Cleanup: remove listeners on unmount
+    return () => {
+      chatService.off("message_received", handleMessageReceived);
+      chatService.off("user_status_changed", handleUserStatusChanged);
+      // Note: Don't disconnect socket here as other components might be using it
+    };
+  }, [selectedConversation]);
+
   const loadMessages = async (conversationId) => {
     try {
       const data = await chatService.getMessages(conversationId);
@@ -180,6 +259,12 @@ const Messages = () => {
 
   const handleSelectConversation = (conversation) => {
     setSelectedConversation(conversation);
+
+    // Decrement global unread count if this conversation has unread messages
+    if (conversation.unreadCount > 0) {
+      decrementUnreadCount(conversation.unreadCount);
+    }
+
     // Update unread count
     setConversations((prev) =>
       prev.map((conv) =>
@@ -216,7 +301,7 @@ const Messages = () => {
         if (!realConversationId) {
           throw new Error("Failed to create conversation");
         }
-        
+
         targetConversationId = realConversationId;
 
         const conversationToSave = {
@@ -410,7 +495,14 @@ const Messages = () => {
   }, []);
 
   const formatTime = (timestamp) => {
+    // Handle null/undefined timestamps
+    if (!timestamp) return "Offline";
+
     const date = new Date(timestamp);
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) return "Offline";
+
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
@@ -425,6 +517,76 @@ const Messages = () => {
     return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
   };
 
+  const formatLastSeen = (timestamp, isOnline) => {
+    // If user is online, don't show last seen
+    if (isOnline) return null;
+
+    // Handle null/undefined timestamps
+    if (!timestamp) return "Offline";
+
+    const date = new Date(timestamp);
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) return "Offline";
+
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    // For recent activity, show relative time
+    if (diffMins < 1) return "Last seen just now";
+    if (diffMins < 60)
+      return `Last seen ${diffMins} ${diffMins === 1 ? "min" : "mins"} ago`;
+    if (diffHours < 24)
+      return `Last seen ${diffHours} ${diffHours === 1 ? "hour" : "hours"} ago`;
+
+    // For today, show time
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dateDay = new Date(date);
+    dateDay.setHours(0, 0, 0, 0);
+
+    if (dateDay.getTime() === today.getTime()) {
+      return `Last seen today at ${date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })}`;
+    }
+
+    // For yesterday
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (dateDay.getTime() === yesterday.getTime()) {
+      return `Last seen yesterday at ${date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })}`;
+    }
+
+    // For this week, show day name
+    if (diffDays < 7) {
+      return `Last seen ${date.toLocaleDateString("en-US", { weekday: "long" })} at ${date.toLocaleTimeString(
+        "en-US",
+        {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        },
+      )}`;
+    }
+
+    // For older, show date
+    return `Last seen ${date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+    })}`;
+  };
+
   const formatMessageTime = (timestamp) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString("en-GB", {
@@ -432,14 +594,6 @@ const Messages = () => {
       minute: "2-digit",
     });
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#7E22CE]"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="h-[calc(100vh-4rem)] bg-gray-50 flex">
@@ -603,9 +757,10 @@ const Messages = () => {
                 <p className="text-xs text-gray-600 font-instrument">
                   {selectedConversation.participant.isOnline
                     ? "Online"
-                    : `Last seen ${formatTime(
+                    : formatLastSeen(
                         selectedConversation.participant.lastSeen,
-                      )}`}
+                        selectedConversation.participant.isOnline,
+                      )}
                 </p>
               </div>
             </div>

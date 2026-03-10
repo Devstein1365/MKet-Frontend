@@ -11,12 +11,14 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
+import { useUnreadMessages } from "../../context/UnreadMessagesContext";
 import Logo from "../ui/Logo";
 import Avatar from "../shared/Avatar";
 
 const Sidebar = () => {
   const location = useLocation();
   const { user } = useAuth();
+  const { unreadCount } = useUnreadMessages();
   const [isCollapsed, setIsCollapsed] = useState(true); // Start collapsed by default
 
   const menuItems = [
@@ -127,13 +129,21 @@ const Sidebar = () => {
                   />
                 )}
 
-                <Icon
-                  className={`text-xl ${
-                    active
-                      ? "text-[#7E22CE]"
-                      : "text-[#4B5563] group-hover:text-[#7E22CE]"
-                  }`}
-                />
+                <div className="relative">
+                  <Icon
+                    className={`text-xl ${
+                      active
+                        ? "text-[#7E22CE]"
+                        : "text-[#4B5563] group-hover:text-[#7E22CE]"
+                    }`}
+                  />
+                  {/* Badge for Messages */}
+                  {item.name === "Messages" && unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </div>
 
                 <AnimatePresence mode="wait">
                   {!isCollapsed && (
