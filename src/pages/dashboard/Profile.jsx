@@ -116,12 +116,44 @@ const Profile = () => {
     setImageToCrop(null);
   };
 
-  const handleSaveProfile = () => {
-    const result = updateUser(profileData);
-    if (result.success) {
-      setIsEditMode(false);
-      showModal("Success!", "Profile updated successfully!", "success");
-    } else {
+  const handleCancelEdit = () => {
+    // Revert profileData back to original user data
+    setProfileData({
+      name: user?.fullName || "",
+      email: user?.email || "",
+      phone: user?.phone || "",
+      location: user?.location || "",
+      bio: user?.bio || "",
+      avatar: user?.avatarUrl || null,
+      verified: user?.isVerified || false,
+      joinedDate: user?.createdAt || new Date().toISOString(),
+    });
+    setIsEditMode(false);
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      // Prepare data for backend (only send fields that backend accepts)
+      const updateData = {
+        bio: profileData.bio,
+        location: profileData.location,
+        phone: profileData.phone,
+        avatarUrl: profileData.avatar,
+      };
+
+      const result = await updateUser(updateData);
+      if (result.success) {
+        setIsEditMode(false);
+        showModal("Success!", "Profile updated successfully!", "success");
+      } else {
+        showModal(
+          "Error",
+          result.message || "Failed to update profile. Please try again.",
+          "error",
+        );
+      }
+    } catch (error) {
+      console.error("Profile update error:", error);
       showModal(
         "Error",
         "Failed to update profile. Please try again.",
@@ -197,7 +229,7 @@ const Profile = () => {
                 onEdit={setProfileData}
                 onEditModeToggle={() => setIsEditMode(true)}
                 onSave={handleSaveProfile}
-                onCancel={() => setIsEditMode(false)}
+                onCancel={handleCancelEdit}
                 onAvatarChange={handleAvatarChange}
               />
             </Card>
