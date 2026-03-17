@@ -47,6 +47,12 @@ const Messages = () => {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const optionsMenuRef = useRef(null);
+  const selectedConversationRef = useRef(null);
+
+  // Keep ref in sync so socket handlers always read the latest value
+  useEffect(() => {
+    selectedConversationRef.current = selectedConversation;
+  }, [selectedConversation]);
 
   // Modal state
   const [modal, setModal] = useState({
@@ -147,10 +153,22 @@ const Messages = () => {
 
   // Load messages when conversation is selected
   useEffect(() => {
-    if (selectedConversation) {
+    if (
+      selectedConversation &&
+      !String(selectedConversation.id).startsWith("new-")
+    ) {
       loadMessages(selectedConversation.id);
       chatService.markAsRead(selectedConversation.id);
+      chatService.joinConversation(selectedConversation.id);
     }
+    return () => {
+      if (
+        selectedConversation &&
+        !String(selectedConversation.id).startsWith("new-")
+      ) {
+        chatService.leaveConversation(selectedConversation.id);
+      }
+    };
   }, [selectedConversation]);
 
   // Auto-scroll to bottom
@@ -181,12 +199,16 @@ const Messages = () => {
     const handleMessageReceived = (message) => {
       console.log("New message received:", message);
 
-      // If the message is for the currently selected conversation, add it to messages
-      if (
-        selectedConversation &&
-        message.conversationId === selectedConversation.id
-      ) {
-        setMessages((prevMessages) => [...prevMessages, message]);
+      const current = selectedConversationRef.current;
+
+      // If the message is for the currently selected conversation, add it to messages.
+      // Guard against duplicates — the sender already added their own message optimistically.
+      if (current && message.conversationId === current.id) {
+        setMessages((prev) => {
+          const alreadyExists = prev.some((m) => m.id === message.id);
+          if (alreadyExists) return prev;
+          return [...prev, message];
+        });
       }
 
       // Update conversations list to reflect new message
@@ -197,7 +219,7 @@ const Messages = () => {
               ...conv,
               lastMessage: message,
               unreadCount:
-                selectedConversation?.id === message.conversationId
+                selectedConversationRef.current?.id === message.conversationId
                   ? 0
                   : (conv.unreadCount || 0) + 1,
               updatedAt: message.timestamp || new Date().toISOString(),
@@ -226,7 +248,8 @@ const Messages = () => {
       });
 
       // Update currently selected conversation if needed
-      if (selectedConversation?.participant?.id === userId) {
+      const current = selectedConversationRef.current;
+      if (current?.participant?.id === userId) {
         setSelectedConversation((prev) => ({
           ...prev,
           participant: {
@@ -237,7 +260,7 @@ const Messages = () => {
       }
     };
 
-    // Register event listeners
+    // Register event listeners once — ref keeps values current
     chatService.on("message_received", handleMessageReceived);
     chatService.on("user_status_changed", handleUserStatusChanged);
 
@@ -247,7 +270,7 @@ const Messages = () => {
       chatService.off("user_status_changed", handleUserStatusChanged);
       // Note: Don't disconnect socket here as other components might be using it
     };
-  }, [selectedConversation]);
+  }, []);
 
   const loadMessages = async (conversationId) => {
     try {
