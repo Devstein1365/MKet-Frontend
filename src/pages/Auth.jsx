@@ -52,8 +52,6 @@ const Auth = () => {
   const [forgotPasswordData, setForgotPasswordData] = useState({
     email: "",
   });
-  // Email domain lock state for signup (when auto-generated)
-  const [domainLocked, setDomainLocked] = useState(false);
 
   // Handle login input
   const handleLoginChange = (e) => {
@@ -80,29 +78,6 @@ const Auth = () => {
       hasNumber: /[0-9]/.test(password),
       hasSymbol: /[!@#$%^&*(),.?":{}|<>]/.test(password),
     });
-  };
-
-  // Auto-generate email from name and student ID
-  const generateEmail = () => {
-    const { fullName, studentId } = signupData;
-    if (fullName && studentId) {
-      // Convert name to lowercase and get first letter + surname
-      const nameParts = fullName.toLowerCase().trim().split(" ");
-
-      let emailPrefix = "";
-
-      if (nameParts.length >= 2) {
-        // Get  full last name
-        emailPrefix = `${nameParts[nameParts.length - 1]}`;
-      } else {
-        emailPrefix = nameParts[0];
-      }
-
-      const local = `${emailPrefix}.${studentId}`;
-      const generatedEmail = `${local}@st.futminna.edu.ng`;
-      setSignupData({ ...signupData, email: generatedEmail });
-      setDomainLocked(true);
-    }
   };
 
   // Handle login submit
@@ -136,11 +111,6 @@ const Auth = () => {
     // Validation
     if (signupData.password !== signupData.confirmPassword) {
       setError("Passwords do not match!");
-      return;
-    }
-
-    if (!signupData.email.includes("@st.futminna.edu.ng")) {
-      setError("Please use a valid FUTMINNA student email!");
       return;
     }
 
@@ -213,11 +183,6 @@ const Auth = () => {
     // Validation
     if (!forgotPasswordData.email) {
       setError("Please enter your email address");
-      return;
-    }
-
-    if (!forgotPasswordData.email.includes("@st.futminna.edu.ng")) {
-      setError("Please use your FUTMINNA student email!");
       return;
     }
 
@@ -339,7 +304,7 @@ const Auth = () => {
                       value={loginData.email}
                       onChange={handleLoginChange}
                       required
-                      placeholder="your.studentid@st.futminna.edu.ng"
+                      placeholder="you@example.com"
                       className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#7E22CE] focus:border-transparent transition-all outline-none font-instrument"
                     />
                   </div>
@@ -435,15 +400,11 @@ const Auth = () => {
                       name="studentId"
                       value={signupData.studentId}
                       onChange={handleSignupChange}
-                      onBlur={generateEmail}
                       required
                       placeholder="m2203183"
                       className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#7E22CE] focus:border-transparent transition-all outline-none font-instrument"
                     />
                   </div>
-                  <p className="text-xs text-[#4B5563] mt-1 font-instrument">
-                    Used in your email address (e.g., m2203183)
-                  </p>
                 </div>
 
                 <div>
@@ -476,49 +437,20 @@ const Auth = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-[#111827] mb-2 font-inter">
-                    FUTMINNA Email
+                    Email Address
                   </label>
                   <div className="relative">
                     <FaEnvelope className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#4B5563]" />
-                    {domainLocked ? (
-                      // show editable local-part with locked domain suffix
-                      <div className="flex items-center w-full border border-gray-300 rounded-lg overflow-hidden bg-gray-50">
-                        <input
-                          type="text"
-                          name="emailLocal"
-                          value={(signupData.email || "").split("@")[0]}
-                          onChange={(e) => {
-                            // strip any @domain part and whitespace to keep only local-part
-                            const raw = e.target.value.replace(/@.*$/g, "");
-                            const local = raw.replace(/\s+/g, "");
-                            setSignupData((prev) => ({
-                              ...prev,
-                              email: `${local}@st.futminna.edu.ng`,
-                            }));
-                          }}
-                          required
-                          placeholder="name.studentid"
-                          className="w-full pl-12 pr-4 py-3 focus:ring-2 focus:ring-[#7E22CE] focus:border-transparent transition-all outline-none font-instrument bg-transparent"
-                        />
-                        <span className="px-3 py-3 text-sm text-[#4B5563] bg-white/0 border-l border-gray-200">
-                          @st.futminna.edu.ng
-                        </span>
-                      </div>
-                    ) : (
-                      <input
-                        type="email"
-                        name="email"
-                        value={signupData.email}
-                        onChange={handleSignupChange}
-                        required
-                        placeholder="name.studentid@st.futminna.edu.ng"
-                        className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#7E22CE] focus:border-transparent transition-all outline-none font-instrument bg-gray-50"
-                      />
-                    )}
+                    <input
+                      type="email"
+                      name="email"
+                      value={signupData.email}
+                      onChange={handleSignupChange}
+                      required
+                      placeholder="you@example.com"
+                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#7E22CE] focus:border-transparent transition-all outline-none font-instrument"
+                    />
                   </div>
-                  <p className="text-xs text-[#14B8A6] mt-1 font-instrument">
-                    ✓ Auto-generated from your name and student ID
-                  </p>
                 </div>
 
                 <PasswordInput
@@ -719,7 +651,7 @@ const Auth = () => {
                       value={forgotPasswordData.email}
                       onChange={handleForgotPasswordChange}
                       className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#7E22CE] focus:border-transparent transition-all font-instrument"
-                      placeholder="your.email@st.futminna.edu.ng"
+                      placeholder="you@example.com"
                       required
                     />
                   </div>
