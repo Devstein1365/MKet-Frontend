@@ -39,9 +39,6 @@ export const AuthProvider = ({ children }) => {
   // Signup function
   const signup = async (userData) => {
     const result = await authService.signup(userData);
-    if (result.success) {
-      setUser(result.user);
-    }
     return result;
   };
 

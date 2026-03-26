@@ -51,8 +51,6 @@ const Auth = () => {
   // Forgot password state
   const [forgotPasswordData, setForgotPasswordData] = useState({
     email: "",
-    newPassword: "",
-    confirmNewPassword: "",
   });
   // Email domain lock state for signup (when auto-generated)
   const [domainLocked, setDomainLocked] = useState(false);
@@ -184,8 +182,10 @@ const Auth = () => {
       });
 
       if (result.success) {
-        // Redirect to dashboard after successful signup
-        navigate("/dashboard", { replace: true });
+        navigate("/verify-email-sent", {
+          replace: true,
+          state: { email: result.email || signupData.email },
+        });
       } else {
         setError(result.message);
       }
@@ -221,51 +221,22 @@ const Auth = () => {
       return;
     }
 
-    if (forgotPasswordData.newPassword.length < 6) {
-      setError("Password must be at least 6 characters long!");
-      return;
-    }
-
-    if (
-      forgotPasswordData.newPassword !== forgotPasswordData.confirmNewPassword
-    ) {
-      setError("Passwords do not match!");
-      return;
-    }
-
     setLoading(true);
 
     try {
-      // Import authService
       const authService = (await import("../services/authService")).default;
 
-      // Check if email exists
-      if (!authService.emailExists(forgotPasswordData.email)) {
-        setError("Email not found. Please check your email or sign up.");
-        setLoading(false);
-        return;
-      }
-
-      // Reset password
-      const result = authService.resetPassword(
-        forgotPasswordData.email,
-        forgotPasswordData.newPassword,
-      );
+      const result = await authService.forgotPassword(forgotPasswordData.email);
 
       if (result.success) {
-        setSuccess(result.message);
+        setSuccess(
+          result.message ||
+            "If that email exists, a password reset link has been sent.",
+        );
         setError("");
-        // Clear form
         setForgotPasswordData({
           email: "",
-          newPassword: "",
-          confirmNewPassword: "",
         });
-        // Switch back to login after 2 seconds
-        setTimeout(() => {
-          setActiveTab("login");
-          setSuccess("");
-        }, 2000);
       } else {
         setError(result.message);
       }
@@ -729,10 +700,10 @@ const Auth = () => {
               >
                 <div className="text-center mb-4">
                   <h3 className="text-lg font-inter font-bold text-gray-900">
-                    Reset Password
+                    Forgot Password
                   </h3>
                   <p className="text-sm text-gray-600 font-instrument mt-1">
-                    Enter your email and new password
+                    Enter your email to receive a reset password link
                   </p>
                 </div>
 
@@ -754,26 +725,6 @@ const Auth = () => {
                   </div>
                 </div>
 
-                <PasswordInput
-                  label="New Password"
-                  name="newPassword"
-                  value={forgotPasswordData.newPassword}
-                  onChange={handleForgotPasswordChange}
-                  placeholder="Enter new password (min. 6 characters)"
-                  required
-                  showStrengthIndicator={true}
-                />
-
-                <ConfirmPasswordInput
-                  label="Confirm New Password"
-                  name="confirmNewPassword"
-                  value={forgotPasswordData.confirmNewPassword}
-                  onChange={handleForgotPasswordChange}
-                  originalPassword={forgotPasswordData.newPassword}
-                  placeholder="Re-enter new password"
-                  required
-                />
-
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -784,10 +735,10 @@ const Auth = () => {
                   {loading ? (
                     <>
                       <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
-                      Resetting Password...
+                      Sending Link...
                     </>
                   ) : (
-                    "Reset Password"
+                    "Send Reset Link"
                   )}
                 </motion.button>
 

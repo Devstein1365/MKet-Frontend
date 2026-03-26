@@ -5,6 +5,9 @@ import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
+import VerifyEmailSent from "./pages/VerifyEmailSent";
+import VerifyEmail from "./pages/VerifyEmail";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/Error";
 import DashboardLayout from "./pages/dashboard/DashboardLayout";
 import DashboardHome from "./pages/dashboard/DashboardHome";
@@ -29,6 +32,12 @@ const App = () => {
               {/* Public routes */}
               <Route path="/" element={<Home />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/verify-email-sent" element={<VerifyEmailSent />} />
+              <Route path="/verify-email/:token" element={<VerifyEmail />} />
+              <Route
+                path="/reset-password/:token"
+                element={<ResetPassword />}
+              />
 
               {/* Dashboard routes - nested and protected */}
               <Route

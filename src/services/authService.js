@@ -27,17 +27,11 @@ class AuthService {
       const response = await api.post("/auth/signup", userData);
 
       if (response.data.success) {
-        // Store token and user data
-        localStorage.setItem(AUTH_TOKEN_KEY, response.data.token);
-        localStorage.setItem(
-          CURRENT_USER_KEY,
-          JSON.stringify(response.data.user),
-        );
-
         return {
           success: true,
           message: response.data.message,
           user: response.data.user,
+          email: response.data.user?.email || userData?.email,
         };
       }
 
@@ -177,6 +171,92 @@ class AuthService {
       return {
         success: false,
         message: error.response?.data?.message || "Failed to change password",
+      };
+    }
+  }
+
+  // Verify email using token from verification link
+  async verifyEmail(token) {
+    try {
+      const response = await api.get(`/auth/verify-email/${token}`);
+      return {
+        success: response.data.success,
+        message: response.data.message,
+      };
+    } catch (error) {
+      console.error("Verify email error:", error);
+      return {
+        success: false,
+        message:
+          error.response?.data?.message ||
+          "Verification link is invalid or expired.",
+      };
+    }
+  }
+
+  // Resend verification email by email address
+  async resendVerificationEmail(email) {
+    try {
+      const response = await api.post("/auth/resend-verification-email", {
+        email: email?.trim()?.toLowerCase(),
+      });
+
+      return {
+        success: response.data.success,
+        message: response.data.message,
+      };
+    } catch (error) {
+      console.error("Resend verification error:", error);
+      return {
+        success: false,
+        message:
+          error.response?.data?.message ||
+          "Failed to resend verification email.",
+      };
+    }
+  }
+
+  // Request password reset link
+  async forgotPassword(email) {
+    try {
+      const response = await api.post("/auth/forgot-password", {
+        email: email?.trim()?.toLowerCase(),
+      });
+
+      return {
+        success: response.data.success,
+        message: response.data.message,
+      };
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      return {
+        success: false,
+        message:
+          error.response?.data?.message ||
+          "Failed to process password reset request.",
+      };
+    }
+  }
+
+  // Reset password using token from reset link
+  async resetPasswordWithToken(token, newPassword) {
+    try {
+      const response = await api.post("/auth/reset-password", {
+        token,
+        newPassword,
+      });
+
+      return {
+        success: response.data.success,
+        message: response.data.message,
+      };
+    } catch (error) {
+      console.error("Reset password error:", error);
+      return {
+        success: false,
+        message:
+          error.response?.data?.message ||
+          "Failed to reset password. The link may be invalid or expired.",
       };
     }
   }

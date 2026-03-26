@@ -16,6 +16,7 @@ import {
   FaTimesCircle,
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
+import authService from "../../services/authService";
 import Card from "../../components/shared/Card";
 import Button from "../../components/shared/Button";
 import Modal from "../../components/shared/Modal";
@@ -38,6 +39,7 @@ const Settings = () => {
     confirmPassword: "",
   });
   const [passwordError, setPasswordError] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
 
   // Password requirements state
   const [passwordRequirements, setPasswordRequirements] = useState({
@@ -120,7 +122,7 @@ const Settings = () => {
     });
   };
 
-  const handlePasswordSubmit = () => {
+  const handlePasswordSubmit = async () => {
     setPasswordError("");
 
     // Validation
@@ -153,26 +155,26 @@ const Settings = () => {
       return;
     }
 
-    // Verify current password
-    if (user.password !== passwordData.currentPassword) {
-      setPasswordError("Current password is incorrect");
-      return;
-    }
+    setChangingPassword(true);
+    try {
+      const result = await authService.changePassword(
+        passwordData.currentPassword,
+        passwordData.newPassword,
+      );
 
-    // Update password in authService
-    const users = JSON.parse(localStorage.getItem("mket_users") || "[]");
-    const userIndex = users.findIndex((u) => u.id === user.id);
-
-    if (userIndex !== -1) {
-      users[userIndex].password = passwordData.newPassword;
-      localStorage.setItem("mket_users", JSON.stringify(users));
-
-      // Update current user
-      const updatedUser = { ...user, password: passwordData.newPassword };
-      localStorage.setItem("mket_current_user", JSON.stringify(updatedUser));
+      if (!result.success) {
+        setPasswordError(result.message || "Failed to change password");
+        return;
+      }
 
       setShowPasswordModal(false);
-      showModal("Success", "Password changed successfully!", "success");
+      showModal(
+        "Success",
+        result.message || "Password changed successfully!",
+        "success",
+      );
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -590,12 +592,17 @@ const Settings = () => {
               <Button
                 variant="outline"
                 onClick={() => setShowPasswordModal(false)}
+                disabled={changingPassword}
                 className="flex-1"
               >
                 Cancel
               </Button>
-              <Button onClick={handlePasswordSubmit} className="flex-1">
-                Change Password
+              <Button
+                onClick={handlePasswordSubmit}
+                disabled={changingPassword}
+                className="flex-1"
+              >
+                {changingPassword ? "Updating..." : "Change Password"}
               </Button>
             </div>
           </div>
