@@ -196,7 +196,7 @@ const Auth = () => {
       if (result.success) {
         setSuccess(
           result.message ||
-            "If that email exists, a password reset link has been sent.",
+            "A password reset link has been sent.",
         );
         setError("");
         setForgotPasswordData({
