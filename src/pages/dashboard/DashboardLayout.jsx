@@ -2,10 +2,13 @@ import React from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "../../components/dashboard/Sidebar";
 import BottomNav from "../../components/dashboard/BottomNav";
+import NotificationBridge from "../../components/dashboard/NotificationBridge";
 
 const DashboardLayout = () => {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
+      <NotificationBridge />
+
       {/* Sidebar for desktop/tablet */}
       <Sidebar />
 

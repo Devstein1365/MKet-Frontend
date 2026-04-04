@@ -70,6 +70,15 @@ export const AuthProvider = ({ children }) => {
     return result;
   };
 
+  // Update user settings/preferences
+  const updateSettings = async (settingsData) => {
+    const result = await authService.updateSettings(settingsData);
+    if (result.success) {
+      setUser(result.user);
+    }
+    return result;
+  };
+
   const value = {
     user,
     loading,
@@ -78,6 +87,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     updateUser,
+    updateSettings,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FaBell,
@@ -17,19 +17,32 @@ import {
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
 import authService from "../../services/authService";
+import browserNotificationService from "../../services/browserNotificationService";
 import Card from "../../components/shared/Card";
 import Button from "../../components/shared/Button";
 import Modal from "../../components/shared/Modal";
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, updateSettings } = useAuth();
   const [notifications, setNotifications] = useState({
     email: true,
     push: true,
     messages: true,
-    updates: false,
+    updates: true,
   });
+  const [savingToggle, setSavingToggle] = useState("");
+
+  useEffect(() => {
+    if (!user) return;
+
+    setNotifications({
+      email: user.emailNotifications !== false,
+      push: user.pushNotifications !== false,
+      messages: user.messageNotifications !== false,
+      updates: user.listingUpdates !== false,
+    });
+  }, [user]);
 
   // Change password state
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -191,6 +204,61 @@ const Settings = () => {
     );
   };
 
+  const persistNotificationSetting = async (key, value) => {
+    const previous = { ...notifications };
+    const nextState = { ...notifications, [key]: value };
+    setNotifications(nextState);
+
+    if (key === "push" && value) {
+      if (!browserNotificationService.isSupported()) {
+        showModal(
+          "Not Supported",
+          "Browser notifications are not supported on this device/browser.",
+          "warning",
+        );
+        setNotifications(previous);
+        return;
+      }
+
+      const permission = browserNotificationService.getPermission();
+      if (permission !== "granted") {
+        const requested = await browserNotificationService.requestPermission();
+        if (requested !== "granted") {
+          showModal(
+            "Permission Needed",
+            "Please allow browser notifications to enable push alerts.",
+            "warning",
+          );
+          setNotifications(previous);
+          return;
+        }
+      }
+    }
+
+    setSavingToggle(key);
+    const payload = {
+      emailNotifications: key === "email" ? value : nextState.email,
+      pushNotifications: key === "push" ? value : nextState.push,
+      messageNotifications: key === "messages" ? value : nextState.messages,
+      listingUpdates: key === "updates" ? value : nextState.updates,
+      // Keep core in-app notifications enabled by default
+      notificationsEnabled: true,
+    };
+
+    const result = await updateSettings(payload);
+    setSavingToggle("");
+
+    if (!result.success) {
+      setNotifications(previous);
+      showModal(
+        "Update Failed",
+        result.message || "Failed to update notification settings.",
+        "error",
+      );
+      return;
+    }
+  };
+
   const settingsSections = [
     {
       title: "Account",
@@ -219,7 +287,7 @@ const Settings = () => {
           toggle: true,
           value: notifications.email,
           onChange: () =>
-            setNotifications({ ...notifications, email: !notifications.email }),
+            persistNotificationSetting("email", !notifications.email),
         },
         {
           icon: FaBell,
@@ -228,7 +296,7 @@ const Settings = () => {
           toggle: true,
           value: notifications.push,
           onChange: () =>
-            setNotifications({ ...notifications, push: !notifications.push }),
+            persistNotificationSetting("push", !notifications.push),
         },
         {
           icon: FaBell,
@@ -237,22 +305,17 @@ const Settings = () => {
           toggle: true,
           value: notifications.messages,
           onChange: () =>
-            setNotifications({
-              ...notifications,
-              messages: !notifications.messages,
-            }),
+            persistNotificationSetting("messages", !notifications.messages),
         },
         {
           icon: FaBell,
-          label: "Product Updates",
-          description: "Notify me about platform updates",
+          label: "Listing Updates",
+          description:
+            "Notify me about listing interest/approval/report updates",
           toggle: true,
           value: notifications.updates,
           onChange: () =>
-            setNotifications({
-              ...notifications,
-              updates: !notifications.updates,
-            }),
+            persistNotificationSetting("updates", !notifications.updates),
         },
       ],
     },
@@ -295,7 +358,7 @@ const Settings = () => {
         {/* User Info Card */}
         <Card>
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#7E22CE] to-[#14B8A6] flex items-center justify-center text-white text-2xl font-bold">
+            <div className="w-16 h-16 rounded-full bg-linear-to-br from-[#7E22CE] to-[#14B8A6] flex items-center justify-center text-white text-2xl font-bold">
               {user?.fullName?.charAt(0) || "U"}
             </div>
             <div className="flex-1">
@@ -345,6 +408,8 @@ const Settings = () => {
                         <button
                           onClick={item.onChange}
                           className="text-3xl focus:outline-none"
+                          disabled={savingToggle.length > 0}
+                          title={savingToggle ? "Saving..." : "Toggle setting"}
                         >
                           {item.value ? (
                             <FaToggleOn className="text-[#7E22CE]" />

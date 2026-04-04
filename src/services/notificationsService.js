@@ -3,6 +3,68 @@ import api from "./api";
 // Notifications Service - Connected to Backend API
 
 class NotificationsService {
+  formatRelativeTime(dateString) {
+    if (!dateString) return "Just now";
+
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return "Just now";
+
+    const diffMs = Date.now() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+
+    return date.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+    });
+  }
+
+  mapNotificationType(rawType) {
+    const type = String(rawType || "").toUpperCase();
+    switch (type) {
+      case "NEW_MESSAGE":
+        return "message";
+      case "PRODUCT_SOLD":
+        return "sale";
+      case "PRODUCT_LIKED":
+        return "like";
+      case "PRICE_DROP":
+        return "price";
+      case "NEW_REVIEW":
+        return "comment";
+      default:
+        return "system";
+    }
+  }
+
+  mapNotificationLink(notification) {
+    if (notification.relatedType === "conversation" && notification.relatedId) {
+      return "/dashboard/chat";
+    }
+
+    if (notification.relatedType === "product" && notification.relatedId) {
+      return `/dashboard/product/${notification.relatedId}`;
+    }
+
+    return "/dashboard/notifications";
+  }
+
+  normalizeNotification(notification) {
+    return {
+      ...notification,
+      read: Boolean(notification.isRead),
+      type: this.mapNotificationType(notification.type),
+      time: this.formatRelativeTime(notification.createdAt),
+      link: this.mapNotificationLink(notification),
+    };
+  }
+
   // Get notifications
   async getNotifications(page = 1, limit = 20, unreadOnly = false) {
     try {
@@ -15,7 +77,9 @@ class NotificationsService {
 
       return {
         success: true,
-        notifications: response.data.notifications,
+        notifications: (response.data.notifications || []).map((n) =>
+          this.normalizeNotification(n),
+        ),
         unreadCount: response.data.unreadCount,
         pagination: response.data.pagination,
       };
@@ -29,6 +93,13 @@ class NotificationsService {
         unreadCount: 0,
       };
     }
+  }
+
+  // Get a few recent notifications for dropdowns/quick UI
+  async getRecentNotifications(limit = 3) {
+    const result = await this.getNotifications(1, limit, false);
+    if (!result.success) return [];
+    return result.notifications;
   }
 
   // Mark notification as read

@@ -175,6 +175,37 @@ class AuthService {
     }
   }
 
+  // Update notification/settings preferences
+  async updateSettings(settingsData) {
+    try {
+      const response = await api.put("/auth/settings", settingsData);
+
+      if (response.data.success) {
+        localStorage.setItem(
+          CURRENT_USER_KEY,
+          JSON.stringify(response.data.user),
+        );
+
+        return {
+          success: true,
+          message: response.data.message,
+          user: response.data.user,
+        };
+      }
+
+      return {
+        success: false,
+        message: response.data.message || "Failed to update settings",
+      };
+    } catch (error) {
+      console.error("Update settings error:", error);
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to update settings",
+      };
+    }
+  }
+
   // Verify email using token from verification link
   async verifyEmail(token) {
     try {
