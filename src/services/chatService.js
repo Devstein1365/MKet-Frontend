@@ -144,13 +144,15 @@ class ChatService {
     }
 
     try {
+      let hasConnectedOnce = false;
+
       this.socket = io(SOCKET_URL, {
         auth: {
           token: token,
         },
         reconnection: true,
         reconnectionDelay: 1000,
-        reconnectionAttempts: 5,
+        reconnectionAttempts: 20,
       });
 
       // Connection events
@@ -158,6 +160,12 @@ class ChatService {
         console.log("✅ Socket.io connected:", this.socket.id);
         this.isConnected = true;
         this.emit("connection_status", { connected: true });
+
+        if (hasConnectedOnce) {
+          this.emit("connection_restored", { connected: true });
+        }
+
+        hasConnectedOnce = true;
       });
 
       this.socket.on("disconnect", (reason) => {
@@ -171,10 +179,23 @@ class ChatService {
         this.emit("connection_error", error);
       });
 
+      this.socket.io.on("reconnect_attempt", (attempt) => {
+        this.emit("connection_reconnecting", { attempt });
+      });
+
+      this.socket.io.on("reconnect", (attempt) => {
+        this.emit("connection_restored", { connected: true, attempt });
+      });
+
       // User online/offline events
       this.socket.on("user_online", ({ userId }) => {
         this.onlineUsers.add(userId);
         this.emit("user_status_changed", { userId, isOnline: true });
+      });
+
+      this.socket.on("online_users", ({ userIds = [] }) => {
+        this.onlineUsers = new Set(userIds);
+        this.emit("online_users_synced", { userIds });
       });
 
       this.socket.on("user_offline", ({ userId }) => {
@@ -190,6 +211,18 @@ class ChatService {
       this.socket.on("message_read", ({ messageId, conversationId }) => {
         this.emit("message_read", { messageId, conversationId });
       });
+
+      this.socket.on(
+        "message_delivered",
+        ({ messageId, conversationId, clientTempId, deliveredToRecipient }) => {
+          this.emit("message_delivered", {
+            messageId,
+            conversationId,
+            clientTempId,
+            deliveredToRecipient,
+          });
+        },
+      );
 
       // Typing events
       this.socket.on("user_typing", ({ userId, conversationId }) => {
@@ -430,13 +463,18 @@ class ChatService {
     return new Promise((resolve, reject) => {
       this.socket.emit(
         "send_message",
-        { conversationId, text: messageText },
+        {
+          conversationId,
+          text: messageText,
+          clientTempId: payload.clientTempId || null,
+        },
         (response) => {
           if (response.success) {
             resolve(
               this.normalizeMessage({
                 ...response.data,
                 image: payload.image || null,
+                deliveryState: "SENT",
               }),
             );
           } else {

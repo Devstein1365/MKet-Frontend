@@ -34,16 +34,23 @@ export const UnreadMessagesProvider = ({ children }) => {
       }
     };
 
+    const handleConnectionRestored = () => {
+      // Re-sync from server after reconnect to avoid stale badge counts
+      loadUnreadCount();
+    };
+
     const setupSocketListeners = () => {
       // Connect to socket
       chatService.connect();
 
       // Listen for new messages
       chatService.on("message_received", handleNewMessage);
+      chatService.on("connection_restored", handleConnectionRestored);
     };
 
     const cleanupSocketListeners = () => {
       chatService.off("message_received", handleNewMessage);
+      chatService.off("connection_restored", handleConnectionRestored);
     };
 
     loadUnreadCount();

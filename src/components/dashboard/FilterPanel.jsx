@@ -17,9 +17,16 @@ const FilterPanel = ({
 }) => {
   const conditions = [
     { id: "all", name: "All Conditions" },
-    { id: "new", name: "Brand New" },
-    { id: "used", name: "Used - Like New" },
-    { id: "fairly-used", name: "Fairly Used" },
+    { id: "NEW", name: "Brand New" },
+    { id: "USED", name: "Used - Like New" },
+    { id: "FAIRLY_USED", name: "Fairly Used" },
+  ];
+
+  const statuses = [
+    { id: "all", name: "All Statuses" },
+    { id: "AVAILABLE", name: "Available" },
+    { id: "RESERVED", name: "Reserved" },
+    { id: "SOLD", name: "Sold" },
   ];
 
   const locations = [
@@ -145,6 +152,21 @@ const FilterPanel = ({
             label: opt.name,
           }))}
           icon={FaSort}
+        />
+      </div>
+
+      {/* Status */}
+      <div className="mt-4">
+        <CustomSelect
+          label="Status"
+          name="status"
+          value={filters.status}
+          onChange={(e) => handleFilterChange("status", e.target.value)}
+          options={statuses.map((status) => ({
+            value: status.id,
+            label: status.name,
+          }))}
+          icon={FaTag}
         />
       </div>
     </>

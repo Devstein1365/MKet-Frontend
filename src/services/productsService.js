@@ -45,7 +45,9 @@ class ProductsService {
       if (filters.sort) params.append("sort", filters.sort);
       if (filters.page) params.append("page", filters.page);
       if (filters.limit) params.append("limit", filters.limit);
-      if (filters.status) params.append("status", filters.status);
+      if (filters.status && filters.status !== "all") {
+        params.append("status", filters.status);
+      }
 
       const response = await api.get(`/products?${params.toString()}`);
 
@@ -313,7 +315,7 @@ class ProductsService {
       if (filters.sort && filters.sort !== "relevance") {
         params.append("sort", filters.sort);
       }
-      if (filters.status) {
+      if (filters.status && filters.status !== "all") {
         params.append("status", filters.status);
       }
 

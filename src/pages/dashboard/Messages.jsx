@@ -30,9 +30,12 @@ const Messages = () => {
   const [messageInput, setMessageInput] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [isSocketConnected, setIsSocketConnected] = useState(
+    chatService.isSocketConnected(),
+  );
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const [blockedUsers, setBlockedUsers] = useState(() => {
     const stored = localStorage.getItem("mket_blocked_users");
     return stored ? JSON.parse(stored) : [];
@@ -73,7 +76,6 @@ const Messages = () => {
   // Load conversations
   useEffect(() => {
     const loadConversations = async () => {
-      setLoading(true);
       try {
         const data = await chatService.getAllConversations();
 
@@ -143,8 +145,6 @@ const Messages = () => {
         }
       } catch (error) {
         console.error("Error loading conversations:", error);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -207,7 +207,11 @@ const Messages = () => {
         setMessages((prev) => {
           const alreadyExists = prev.some((m) => m.id === message.id);
           if (alreadyExists) return prev;
-          return [...prev, message];
+          return [...prev, { ...message, deliveryState: "SENT" }];
+        });
+
+        chatService.markAsRead(message.conversationId).catch((error) => {
+          console.error("Failed to mark conversation as read:", error);
         });
       }
 
@@ -260,17 +264,97 @@ const Messages = () => {
       }
     };
 
+    const handleMessageRead = ({ messageId, conversationId }) => {
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.id === messageId) {
+            return { ...msg, isRead: true };
+          }
+
+          if (msg.conversationId === conversationId && msg.senderId === 0) {
+            return { ...msg, isRead: true };
+          }
+
+          return msg;
+        }),
+      );
+    };
+
+    const handleMessageDelivered = ({ messageId, clientTempId }) => {
+      setMessages((prev) =>
+        prev.map((msg) => {
+          const byTemp = Boolean(
+            clientTempId && msg.clientTempId === clientTempId,
+          );
+          const byId = Boolean(!clientTempId && msg.id === messageId);
+          if (!byTemp && !byId) return msg;
+
+          return {
+            ...msg,
+            id: String(msg.id).startsWith("temp-") ? messageId : msg.id,
+            deliveryState: "SENT",
+            failed: false,
+          };
+        }),
+      );
+    };
+
+    const handleConnectionStatus = ({ connected }) => {
+      setIsSocketConnected(Boolean(connected));
+      if (connected) {
+        setIsReconnecting(false);
+      }
+    };
+
+    const handleReconnecting = () => {
+      setIsReconnecting(true);
+      setIsSocketConnected(false);
+    };
+
+    const handleConnectionRestored = async () => {
+      setIsReconnecting(false);
+      setIsSocketConnected(true);
+
+      try {
+        const refreshed = await chatService.getAllConversations();
+        const filteredData = refreshed.filter(
+          (conv) => !blockedUsers.includes(conv.participant?.id),
+        );
+        setConversations(filteredData);
+
+        const current = selectedConversationRef.current;
+        if (current && !String(current.id).startsWith("new-")) {
+          const refreshedMessages = await chatService.getMessages(current.id);
+          setMessages(refreshedMessages);
+          await chatService.markAsRead(current.id);
+          chatService.joinConversation(current.id);
+        }
+      } catch (error) {
+        console.error("Reconnect sync failed:", error);
+      }
+    };
+
     // Register event listeners once — ref keeps values current
     chatService.on("message_received", handleMessageReceived);
     chatService.on("user_status_changed", handleUserStatusChanged);
+    chatService.on("message_read", handleMessageRead);
+    chatService.on("message_delivered", handleMessageDelivered);
+    chatService.on("connection_status", handleConnectionStatus);
+    chatService.on("connection_reconnecting", handleReconnecting);
+    chatService.on("connection_restored", handleConnectionRestored);
 
     // Cleanup: remove listeners on unmount
     return () => {
       chatService.off("message_received", handleMessageReceived);
       chatService.off("user_status_changed", handleUserStatusChanged);
+      chatService.off("message_read", handleMessageRead);
+      chatService.off("message_delivered", handleMessageDelivered);
+      chatService.off("connection_status", handleConnectionStatus);
+      chatService.off("connection_reconnecting", handleReconnecting);
+      chatService.off("connection_restored", handleConnectionRestored);
       // Note: Don't disconnect socket here as other components might be using it
     };
-  }, []);
+  }, [blockedUsers]);
 
   const loadMessages = async (conversationId) => {
     try {
@@ -310,10 +394,27 @@ const Messages = () => {
     setShowQuickReplies(false);
 
     try {
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
       const messageData = {
         text: messageInput.trim(),
         image: imagePreview,
+        clientTempId: tempId,
       };
+
+      const optimisticMessage = {
+        id: tempId,
+        clientTempId: tempId,
+        conversationId: selectedConversation.id,
+        senderId: 0,
+        text: messageData.text,
+        image: messageData.image,
+        isRead: false,
+        timestamp: new Date().toISOString(),
+        deliveryState: "SENDING",
+        failed: false,
+      };
+      setMessages((prev) => [...prev, optimisticMessage]);
 
       let targetConversationId = selectedConversation.id;
 
@@ -355,7 +456,18 @@ const Messages = () => {
         messageData,
       );
 
-      setMessages([...messages, newMessage]);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.clientTempId === tempId
+            ? {
+                ...newMessage,
+                clientTempId: tempId,
+                deliveryState: "SENT",
+                failed: false,
+              }
+            : msg,
+        ),
+      );
       setMessageInput("");
       setImagePreview(null);
 
@@ -374,6 +486,28 @@ const Messages = () => {
       }
     } catch (error) {
       console.error("Error sending message:", error);
+
+      setMessages((prev) => {
+        if (!prev.length) return prev;
+
+        const updated = [...prev];
+        for (let i = updated.length - 1; i >= 0; i -= 1) {
+          if (
+            updated[i].senderId === 0 &&
+            updated[i].deliveryState === "SENDING"
+          ) {
+            updated[i] = {
+              ...updated[i],
+              deliveryState: "FAILED",
+              failed: true,
+            };
+            break;
+          }
+        }
+
+        return updated;
+      });
+
       showModal("Error", "Failed to send message. Please try again.", "error");
     } finally {
       setSending(false);
@@ -825,48 +959,55 @@ const Messages = () => {
                 </p>
               </div>
             </div>
-            <div className="relative" ref={optionsMenuRef}>
-              <button
-                onClick={() => setShowOptionsMenu(!showOptionsMenu)}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                <FaEllipsisV />
-              </button>
-
-              {/* Options Dropdown Menu */}
-              {showOptionsMenu && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
-                >
-                  <button
-                    onClick={handleViewProfile}
-                    className="w-full px-4 py-2 text-left text-sm font-instrument text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    View Profile
-                  </button>
-                  <button
-                    onClick={handleDeleteConversation}
-                    className="w-full px-4 py-2 text-left text-sm font-instrument text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    Delete Conversation
-                  </button>
-                  <button
-                    onClick={handleBlockUser}
-                    className="w-full px-4 py-2 text-left text-sm font-instrument text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    Block User
-                  </button>
-                  <button
-                    onClick={handleReportUser}
-                    className="w-full px-4 py-2 text-left text-sm font-instrument text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    Report User
-                  </button>
-                </motion.div>
+            <div className="flex items-center gap-3">
+              {!isSocketConnected && (
+                <span className="text-xs font-instrument text-amber-600">
+                  {isReconnecting ? "Reconnecting..." : "Offline"}
+                </span>
               )}
+              <div className="relative" ref={optionsMenuRef}>
+                <button
+                  onClick={() => setShowOptionsMenu(!showOptionsMenu)}
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  <FaEllipsisV />
+                </button>
+
+                {/* Options Dropdown Menu */}
+                {showOptionsMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
+                  >
+                    <button
+                      onClick={handleViewProfile}
+                      className="w-full px-4 py-2 text-left text-sm font-instrument text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      View Profile
+                    </button>
+                    <button
+                      onClick={handleDeleteConversation}
+                      className="w-full px-4 py-2 text-left text-sm font-instrument text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      Delete Conversation
+                    </button>
+                    <button
+                      onClick={handleBlockUser}
+                      className="w-full px-4 py-2 text-left text-sm font-instrument text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      Block User
+                    </button>
+                    <button
+                      onClick={handleReportUser}
+                      className="w-full px-4 py-2 text-left text-sm font-instrument text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      Report User
+                    </button>
+                  </motion.div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -946,10 +1087,21 @@ const Messages = () => {
                             : "bg-gray-100 text-gray-900"
                         }`}
                       >
-                        <p className="text-sm font-instrument break-words">
+                        <p className="text-sm font-instrument wrap-break-word">
                           {message.text}
                         </p>
                       </div>
+                    )}
+                    {isCurrentUser && (
+                      <span className="text-[10px] text-gray-500 font-instrument px-1">
+                        {message.deliveryState === "SENDING"
+                          ? "Sending..."
+                          : message.deliveryState === "FAILED"
+                            ? "Failed"
+                            : message.isRead
+                              ? "Read"
+                              : "Sent"}
+                      </span>
                     )}
                   </div>
                 </motion.div>

@@ -13,6 +13,7 @@ import DashboardLayout from "./pages/dashboard/DashboardLayout";
 import DashboardHome from "./pages/dashboard/DashboardHome";
 import Wishlist from "./pages/dashboard/Wishlist";
 import PostItem from "./pages/dashboard/PostItem";
+import EditListing from "./pages/dashboard/EditListing";
 import ProductDetails from "./pages/dashboard/ProductDetails";
 import Messages from "./pages/dashboard/Messages";
 import Profile from "./pages/dashboard/Profile";
@@ -50,6 +51,7 @@ const App = () => {
               >
                 <Route index element={<DashboardHome />} />
                 <Route path="product/:id" element={<ProductDetails />} />
+                <Route path="product/edit/:id" element={<EditListing />} />
                 <Route path="wishlist" element={<Wishlist />} />
                 <Route path="post" element={<PostItem />} />
                 <Route path="chat" element={<Messages />} />

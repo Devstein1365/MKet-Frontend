@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { FaPlus, FaBell, FaSlidersH } from "react-icons/fa";
 import Button from "../../components/shared/Button";
 import SearchBar from "../../components/dashboard/SearchBar";
@@ -12,7 +12,6 @@ import notificationsService from "../../services/notificationsService";
 import { categories as categoriesData } from "../../data/categories";
 
 const DashboardHome = () => {
-  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState(""); // Committed search query
   const [searchInput, setSearchInput] = useState(""); // What user is typing
   const [hasSearched, setHasSearched] = useState(false); // Has user performed a search
@@ -35,6 +34,7 @@ const DashboardHome = () => {
     priceRange: [0, 1000000],
     location: "all",
     sortBy: "relevance",
+    status: "all",
   });
 
   const searchRef = useRef(null);
@@ -140,7 +140,16 @@ const DashboardHome = () => {
 
   // Apply filters to search results AFTER search
   useEffect(() => {
-    if (hasSearched && searchQuery) {
+    const hasActiveFilters =
+      filters.category !== "all" ||
+      filters.condition !== "all" ||
+      filters.location !== "all" ||
+      filters.sortBy !== "relevance" ||
+      filters.status !== "all" ||
+      filters.priceRange[0] !== 0 ||
+      filters.priceRange[1] !== 1000000;
+
+    if (hasSearched || hasActiveFilters) {
       performSearch();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -148,22 +157,23 @@ const DashboardHome = () => {
 
   // Perform actual search
   const performSearch = async () => {
-    if (!searchInput.trim() && !hasSearched) return; // Don't search if input is empty and no previous search
+    const query = searchInput.trim();
 
     setSearchLoading(true);
     setHasSearched(true);
     setShowSuggestions(false);
-    setSearchQuery(searchInput);
+    setSearchQuery(query);
 
     try {
       // Use the new server-side filtering for better performance and accuracy
       const result = await productsService.searchProducts(
-        searchInput,
+        query,
         {
           ...filters,
           minPrice: filters.priceRange[0],
           maxPrice: filters.priceRange[1],
           sort: filters.sortBy,
+          status: filters.status,
         },
         1,
         50,
@@ -207,6 +217,7 @@ const DashboardHome = () => {
             minPrice: filters.priceRange[0],
             maxPrice: filters.priceRange[1],
             sort: filters.sortBy,
+            status: filters.status,
           },
           1,
           50,
@@ -244,6 +255,7 @@ const DashboardHome = () => {
       priceRange: [0, 1000000],
       location: "all",
       sortBy: "relevance",
+      status: "all",
     });
     setSearchQuery("");
     setSearchInput("");
@@ -273,7 +285,7 @@ const DashboardHome = () => {
           <div className="flex flex-col lg:flex-row items-center justify-between py-4">
             {/* Logo - visible on mobile only */}
             <div className="lg:hidden mb-3 w-full flex items-center justify-between">
-              <h1 className="text-2xl font-zen font-bold bg-gradient-to-r from-[#7E22CE] to-[#14B8A6] text-transparent bg-clip-text">
+              <h1 className="text-2xl font-zen font-bold bg-linear-to-r from-[#7E22CE] to-[#14B8A6] text-transparent bg-clip-text">
                 MKET
               </h1>
 

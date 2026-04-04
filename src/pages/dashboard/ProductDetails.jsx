@@ -12,24 +12,33 @@ import {
   FaFlag,
   FaCheckCircle,
   FaClock,
+  FaEdit,
 } from "react-icons/fa";
 import { useWishlist } from "../../context/WishlistContext";
+import { useAuth } from "../../context/AuthContext";
 import Button from "../../components/shared/Button";
 import Card from "../../components/shared/Card";
 import Avatar from "../../components/shared/Avatar";
 import Badge from "../../components/shared/Badge";
+import Modal from "../../components/shared/Modal";
 import productsService from "../../services/productsService";
+import reportService from "../../services/reportService";
 
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isInWishlist, toggleWishlist } = useWishlist();
+  const { user } = useAuth();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportDescription, setReportDescription] = useState("");
+  const [submittingReport, setSubmittingReport] = useState(false);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
 
@@ -165,6 +174,36 @@ const ProductDetails = () => {
     }
   };
 
+  const handleReportSubmit = async () => {
+    if (!reportReason.trim()) {
+      alert("Please select or enter a report reason.");
+      return;
+    }
+
+    setSubmittingReport(true);
+    try {
+      const result = await reportService.reportProduct(
+        product.id,
+        reportReason,
+        reportDescription,
+      );
+
+      if (result.success) {
+        setShowReportModal(false);
+        setReportReason("");
+        setReportDescription("");
+        alert("Report submitted successfully. We'll review it shortly.");
+      } else {
+        alert(result.message || "Failed to submit report");
+      }
+    } catch (error) {
+      console.error("Report submission error:", error);
+      alert("An error occurred while submitting report");
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -231,10 +270,21 @@ const ProductDetails = () => {
               <span className="font-instrument">Back</span>
             </button>
             <div className="flex items-center gap-3">
+              {product?.seller?.id === user?.userId && (
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => navigate(`/dashboard/product/edit/${id}`)}
+                  className="w-10 h-10 rounded-full bg-[#7E22CE]/10 flex items-center justify-center hover:bg-[#7E22CE]/20 transition-colors"
+                  title="Edit Listing"
+                >
+                  <FaEdit className="text-[#7E22CE]" />
+                </motion.button>
+              )}
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={handleShare}
                 className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                title="Share Listing"
               >
                 <FaShare className="text-gray-600" />
               </motion.button>
@@ -242,6 +292,9 @@ const ProductDetails = () => {
                 whileTap={{ scale: 0.9 }}
                 onClick={handleWishlistToggle}
                 className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                title={
+                  isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"
+                }
               >
                 {isWishlisted ? (
                   <FaHeart className="text-red-500 text-xl" />
@@ -445,9 +498,16 @@ const ProductDetails = () => {
                   Chat with Seller
                 </Button>
                 <div className="grid grid-cols-2 gap-3">
-                  <Button variant="outline" fullWidth>
+                  <Button
+                    variant="outline"
+                    fullWidth
+                    onClick={() => setShowReportModal(true)}
+                    disabled={product?.seller?.id === user?.userId}
+                  >
                     <FaFlag className="mr-2" />
-                    Report
+                    {product?.seller?.id === user?.userId
+                      ? "Your Listing"
+                      : "Report"}
                   </Button>
                   <Button variant="outline" fullWidth onClick={handleShare}>
                     <FaShare className="mr-2" />
@@ -522,6 +582,70 @@ const ProductDetails = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <Modal
+        isOpen={showReportModal}
+        onClose={() => {
+          if (!submittingReport) setShowReportModal(false);
+        }}
+        title="Report Listing"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Reason
+            </label>
+            <select
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            >
+              <option value="">Select a reason</option>
+              <option value="Spam">Spam</option>
+              <option value="Scam/Fraud">Scam/Fraud</option>
+              <option value="Misleading Description">
+                Misleading Description
+              </option>
+              <option value="Inappropriate Content">
+                Inappropriate Content
+              </option>
+              <option value="Prohibited Item">Prohibited Item</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Additional Details (optional)
+            </label>
+            <textarea
+              value={reportDescription}
+              onChange={(e) => setReportDescription(e.target.value)}
+              rows={4}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none"
+              placeholder="Tell us why this listing should be reviewed..."
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="outline"
+              fullWidth
+              onClick={() => setShowReportModal(false)}
+              disabled={submittingReport}
+            >
+              Cancel
+            </Button>
+            <Button
+              fullWidth
+              onClick={handleReportSubmit}
+              disabled={submittingReport}
+            >
+              {submittingReport ? "Submitting..." : "Submit Report"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
