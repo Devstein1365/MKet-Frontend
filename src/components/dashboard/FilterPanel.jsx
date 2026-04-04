@@ -24,11 +24,12 @@ const FilterPanel = ({
 
   const locations = [
     { id: "all", name: "All Locations" },
-    { id: "bosso", name: "Bosso Campus" },
-    { id: "main", name: "Main Campus" },
-    { id: "gidan-kwano", name: "Gidan Kwano" },
-    { id: "tunga", name: "Tunga" },
-    { id: "maitumbi", name: "Maitumbi" },
+    { id: "MM Castle", name: "MM Castle" },
+    { id: "Talba Road", name: "Talba Road" },
+    { id: "School Gate", name: "School Gate" },
+    { id: "Bosso Campus", name: "Bosso Campus" },
+    { id: "Main Campus", name: "Main Campus" },
+    { id: "Gidan Kwano", name: "Gidan Kwano" },
   ];
 
   const sortOptions = [

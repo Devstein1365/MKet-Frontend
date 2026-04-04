@@ -57,8 +57,20 @@ const ProductCard = ({ product, onClick }) => {
           {/* Condition badge (top-left) */}
           {product.condition && (
             <div className="absolute top-2 left-2">
-              <span className="inline-block px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded">
-                {product.condition}
+              <span
+                className={`inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded shadow-sm ${
+                  product.status === "SOLD"
+                    ? "bg-red-500 text-white"
+                    : product.status === "RESERVED"
+                      ? "bg-amber-500 text-white"
+                      : "bg-white/90 text-[#7E22CE]"
+                }`}
+              >
+                {product.status === "SOLD"
+                  ? "SOLD"
+                  : product.status === "RESERVED"
+                    ? "RESERVED"
+                    : product.condition}
               </span>
             </div>
           )}
@@ -66,7 +78,9 @@ const ProductCard = ({ product, onClick }) => {
       </div>
 
       {/* Product details */}
-      <div className="px-3 pb-3">
+      <div
+        className={`px-3 pb-3 ${product.status === "SOLD" ? "opacity-60" : ""}`}
+      >
         {/* Title */}
         <h3 className="font-inter font-semibold text-[#111827] text-sm mb-1.5 line-clamp-2 group-hover:text-[#7E22CE] transition-colors">
           {product.title}

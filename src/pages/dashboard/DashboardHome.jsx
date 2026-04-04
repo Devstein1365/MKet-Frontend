@@ -156,31 +156,22 @@ const DashboardHome = () => {
     setSearchQuery(searchInput);
 
     try {
-      const result = await productsService.searchProducts(searchInput, 1, 50);
+      // Use the new server-side filtering for better performance and accuracy
+      const result = await productsService.searchProducts(
+        searchInput,
+        {
+          ...filters,
+          minPrice: filters.priceRange[0],
+          maxPrice: filters.priceRange[1],
+          sort: filters.sortBy,
+        },
+        1,
+        50,
+      );
       console.log("Search result:", result);
 
       if (result.success && result.products) {
-        // Apply client-side filters
-        let results = result.products;
-
-        if (filters.category !== "all") {
-          results = results.filter((p) => p.category === filters.category);
-        }
-
-        if (filters.condition !== "all") {
-          results = results.filter(
-            (p) =>
-              p.condition?.toLowerCase() === filters.condition.toLowerCase(),
-          );
-        }
-
-        if (filters.location !== "all") {
-          results = results.filter((p) =>
-            p.location?.toLowerCase().includes(filters.location.toLowerCase()),
-          );
-        }
-
-        setFilteredProducts(results);
+        setFilteredProducts(result.products);
       } else {
         setFilteredProducts([]);
       }
@@ -211,6 +202,12 @@ const DashboardHome = () => {
       try {
         const result = await productsService.searchProducts(
           suggestion.title,
+          {
+            ...filters,
+            minPrice: filters.priceRange[0],
+            maxPrice: filters.priceRange[1],
+            sort: filters.sortBy,
+          },
           1,
           50,
         );
@@ -230,21 +227,6 @@ const DashboardHome = () => {
       setSearchInput(suggestion.name);
       setFilters(newFilters);
       setShowSuggestions(false);
-      setSearchQuery(suggestion.name);
-      setHasSearched(true);
-      setSearchLoading(true);
-
-      try {
-        const results = await productsService.searchProducts(
-          suggestion.name,
-          newFilters,
-        );
-        setFilteredProducts(results);
-      } catch (error) {
-        console.error("Search error:", error);
-      } finally {
-        setSearchLoading(false);
-      }
     }
   };
 

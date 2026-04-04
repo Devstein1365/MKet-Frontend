@@ -45,6 +45,7 @@ class ProductsService {
       if (filters.sort) params.append("sort", filters.sort);
       if (filters.page) params.append("page", filters.page);
       if (filters.limit) params.append("limit", filters.limit);
+      if (filters.status) params.append("status", filters.status);
 
       const response = await api.get(`/products?${params.toString()}`);
 
@@ -286,22 +287,37 @@ class ProductsService {
   }
 
   // Search products (dedicated search endpoint)
-  async searchProducts(searchTerm, page = 1, limit = 20) {
+  async searchProducts(searchTerm, filters = {}, page = 1, limit = 20) {
     try {
-      if (!searchTerm || searchTerm.trim() === "") {
-        return {
-          success: true,
-          products: [],
-          query: searchTerm,
-          pagination: { total: 0, page: 1, pages: 0, limit },
-        };
+      const params = new URLSearchParams();
+      if (searchTerm) params.append("search", searchTerm);
+      if (page) params.append("page", page);
+      if (limit) params.append("limit", limit);
+
+      // Add other filters if they are not the default "all"
+      if (filters.category && filters.category !== "all") {
+        params.append("category", filters.category);
+      }
+      if (filters.condition && filters.condition !== "all") {
+        params.append("condition", filters.condition);
+      }
+      if (filters.minPrice) {
+        params.append("minPrice", filters.minPrice);
+      }
+      if (filters.maxPrice) {
+        params.append("maxPrice", filters.maxPrice);
+      }
+      if (filters.location && filters.location !== "all") {
+        params.append("location", filters.location);
+      }
+      if (filters.sort && filters.sort !== "relevance") {
+        params.append("sort", filters.sort);
+      }
+      if (filters.status) {
+        params.append("status", filters.status);
       }
 
-      const response = await api.get(
-        `/products?search=${encodeURIComponent(
-          searchTerm,
-        )}&page=${page}&limit=${limit}`,
-      );
+      const response = await api.get(`/products?${params.toString()}`);
 
       return {
         success: true,
